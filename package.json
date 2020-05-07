@@ -1,0 +1,25 @@
+{
+  "name": "lib.md",
+  "version": "1.0.0",
+  "description": "A Markdown parser and HTML renderer written in JS.",
+  "main": "./lib/index.mjs",
+  "scripts": {
+    "test": "node test/test.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/LambdAurora/lib.md.git"
+  },
+  "keywords": [
+    "markdown",
+    "parser",
+    "html",
+    "renderer"
+  ],
+  "author": "LambdAurora <aurora42lambda@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/LambdAurora/lib.md/issues"
+  },
+  "homepage": "https://github.com/LambdAurora/lib.md#readme"
+}

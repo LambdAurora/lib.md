@@ -21,13 +21,16 @@ let document = new md.Document()
 console.log(JSON.stringify(document, null, 2));
 console.log(document.toString());
 
-console.log(JSON.stringify(md_parser.parse("# lib.md\n\
+let parsed_document = md_parser.parse("# lib.md\n\
 \n\
-A Markdown parser and renderer library.\n\
+A Markdown parser and renderer library. [![random fox](https://foxrudor.de/)](https://foxrudor.de/ \"Visit the website!\") oh no  \n\
+foo bar\n\
 ```js\n\
 let uwu = \"owo\";\n\
 \n\
 console.log(uwu);\n\
 ```\
-More text\n\
-"), null, 2));
+More text [hello world](https://example.com) oh no\n\
+");
+console.log(JSON.stringify(parsed_document, null, 2));
+console.log(parsed_document.toString());

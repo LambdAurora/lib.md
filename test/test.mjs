@@ -9,7 +9,7 @@
 
 import {md, md_parser} from "../lib/index.mjs";
 
-let link = new md.Link("https://random.com", ["another", "random", "link"], "oh no", "reference_test");
+let link = new md.Link("https://random.com", ["another ", "random", " link"], "oh no", "reference_test");
 
 let document = new md.Document()
     .push(new md.Heading("Hello", md.HeadingLevel.H1))

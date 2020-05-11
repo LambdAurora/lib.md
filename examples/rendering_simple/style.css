@@ -1,0 +1,52 @@
+body {
+    display: flex;
+}
+
+.strikethrough {
+    text-decoration: line-through;
+}
+
+.underline {
+    text-decoration: underline;
+}
+
+.responsive_img {
+    width: 100%;
+    max-width: 600px;
+    height: auto;
+}
+
+/* Inline spoilers */
+
+span.spoiler {
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+span.spoiler_hidden {
+    cursor: pointer;
+    background-color: rgba(0, 0, 0);
+}
+
+span.spoiler_hidden > span {
+    opacity: 0;
+}
+
+.spoiler_hidden * {
+    pointer-events: none;
+}
+
+/* Image spoilers */
+
+div.spoiler {
+    display: inline-block;
+    overflow: hidden;
+}
+
+.spoiler_img.spoiler_hidden {
+    filter: blur(66px);
+}
+
+pre {
+    width: min-content;
+    overflow-x: auto;
+}

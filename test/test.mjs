@@ -7,11 +7,11 @@
  * see the LICENSE file.
  */
 
-import {md, md_parser} from "../lib/index.mjs";
+import {md, md_parser, md_renderer} from "../lib/index.mjs";
 
 let link = new md.Link("https://random.com", ["another ", "random", " link"], "oh no", "reference_test");
 
-let document = new md.Document()
+let document = new md.MDDocument()
     .push(new md.Heading("Hello", md.HeadingLevel.H1))
     .push("Sample text")
     .push(new md.Paragraph([link, md.LINEBREAK, "oh!"]))
@@ -23,7 +23,7 @@ console.log(document.toString());
 
 let parsed_document = md_parser.parse("# lib.md\n\
 \n\
-A Markdown parser and renderer library. [![random fox](https://foxrudor.de/)](https://foxrudor.de/ \"Visit the website!\") oh no  \n\
+A Markdown parser and *hewwo **renderer*** library. [![random fox](https://foxrudor.de/)](https://foxrudor.de/ \"Visit the website!\") oh no  \n\
 foo bar\n\
 ```js\n\
 let uwu = \"owo\";\n\

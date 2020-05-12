@@ -2,14 +2,19 @@
 
 ## Parsing & Objects
 
-- Add lists.
+- Lists parsing.
+  - Move list parsing to its own function.
+  - Finish the algorithm.
 - Add tables (low priority).
-- Inline HTML
+- Inline HTML purging
+- Highlight (extension with `==highlight here==`).
+- Add Table of Contents.
 
 ## Rendering
 
-- Put id attribute on headings.
-- Inline HTML
+- Lists rendering.
+- Table of Contents rendering.
+- Tables rendering.
 
 ## Examples
 

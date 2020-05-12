@@ -53,6 +53,20 @@ fetch("./example.md")
     .catch(reason => console.error(reason));
 ```
 
+## Inline HTML
+
+You can put inline HTML inside your document:
+
+<p align="center">
+    <img src="https://img.shields.io/badge/language-JS-9B599A.svg?style=flat-square" alt="JS"></img>
+    <a href="https://raw.githubusercontent.com/LambdAurora/lib.md/master/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="GitHub license"></img></a>
+    <a href="https://github.com/LambdAurora/lib.md/issues/"><img src="https://img.shields.io/github/issues/LambdAurora/lib.md.svg?style=flat-square" alt="GitHub issues"></img></a>
+</p>
+
+<p align="center">
+    A Markdown parser and renderer library.
+</p>
+
 ## Spoiler tags
 
 Spoiler tags are an "extension" as they are not supported in the Markdown standard.  

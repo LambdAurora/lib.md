@@ -2,6 +2,8 @@ body {
     display: flex;
 }
 
+/* Typopography */
+
 .strikethrough {
     text-decoration: line-through;
 }
@@ -9,6 +11,13 @@ body {
 .underline {
     text-decoration: underline;
 }
+
+blockquote {
+    border-left: solid red;
+    padding-left: 1em;
+}
+
+/* Images */
 
 .responsive_img {
     width: 100%;

@@ -7,7 +7,7 @@
  * see the LICENSE file.
  */
 
-import {md, md_parser, md_renderer} from "../lib/index.mjs";
+import md from "../lib/index.mjs";
 
 let link = new md.Link("https://random.com", ["another ", "random", " link"], "oh no", "reference_test");
 
@@ -21,7 +21,7 @@ let document = new md.MDDocument()
 console.log(JSON.stringify(document, null, 2));
 console.log(document.toString());
 
-let parsed_document = md_parser.parse("# lib.md\n\
+let parsed_document = md.parser.parse("# lib.md\n\
 \n\
 A Markdown parser and *hewwo **renderer*** library. [![random fox](https://foxrudor.de/)](https://foxrudor.de/ \"Visit the website!\") oh no  \n\
 foo bar\n\

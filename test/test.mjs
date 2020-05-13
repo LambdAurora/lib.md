@@ -8,6 +8,7 @@
  */
 
 import md from "../lib/index.mjs";
+import { readFile } from "fs";
 
 let link = new md.Link("https://random.com", ["another ", "random", " link"], "oh no", "reference_test");
 
@@ -34,3 +35,11 @@ More text [hello world](https://example.com) oh no\n\
 ");
 console.log(JSON.stringify(parsed_document, null, 2));
 console.log(parsed_document.toString());
+
+readFile("test/list.md", "utf-8", (err, data) => {
+    if (err)
+        throw err;
+    let doc = md.parser.parse(data);
+    console.log(JSON.stringify(doc, null, 2));
+    console.log(doc.toString());
+})

@@ -9,9 +9,7 @@ fetch("./example.md")
     })
     .then(text => {
         let doc = md.parser.parse(text);
-        md.render(doc, document, { image: { class_name: "responsive_img" }, spoiler: { enable: true }, parent: document.body });
-
-        console.log(JSON.stringify(doc, null, 2))
+        md.render(doc, document, { image: { class_name: "responsive_img" }, spoiler: { enable: true }, parent: document.querySelector("main") });
 
         document.querySelectorAll(".spoiler_hidden").forEach(spoiler => {
             spoiler.addEventListener("click", _ => {

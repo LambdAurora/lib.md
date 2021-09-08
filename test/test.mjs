@@ -1,5 +1,5 @@
 /*
- * Copyright © 2020 LambdAurora <aurora42lambda@gmail.com>
+ * Copyright © 2021 LambdAurora <aurora42lambda@gmail.com>
  *
  * This file is part of lib.md.
  *
@@ -42,4 +42,4 @@ readFile("test/list.md", "utf-8", (err, data) => {
     let doc = md.parser.parse(data);
     console.log(JSON.stringify(doc, null, 2));
     console.log(doc.toString());
-})
+});

@@ -30,7 +30,7 @@ foo bar\n\
 let uwu = \"owo\";\n\
 \n\
 console.log(uwu);\n\
-```\
+```\n\
 More text [hello world](https://example.com) oh no\n\
 ");
 console.log(JSON.stringify(parsed_document, null, 2));

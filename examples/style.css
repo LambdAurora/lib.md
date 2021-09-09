@@ -54,7 +54,7 @@ body > ol, body > ul {
     text-decoration: underline;
 }
 
-.highlight {
+mark {
     background-color: red;
 }
 

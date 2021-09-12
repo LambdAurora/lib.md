@@ -13,7 +13,7 @@ body {
 
 header {
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     width: 100%;
     align-items: center;
     justify-content: center;
@@ -40,8 +40,20 @@ body > *:not(h1, h2, h3, h4, h5, h6) {
     margin-block-start: 0;
 }
 
+h1, h2, h3, h4, h5, h6 {
+    page-break-inside: avoid;
+}
+
 body > ol, body > ul {
     margin-block-end: 0;
+}
+
+nav.toolbar {
+    background-color: #999;
+}
+
+span.toolbar_button {
+    cursor: pointer;
 }
 
 /* Typopography */

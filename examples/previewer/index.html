@@ -14,6 +14,9 @@
         <header>
             <h1>lib.md Markdown previewer</h1>
         </header>
+        <nav class="toolbar">
+            <span id="pdf_export" class="toolbar_button">Export to PDF</span>
+        </nav>
         <main>
             <section id="editor">
                 <div>
@@ -28,6 +31,7 @@
                 <div id="markdown_preview"></div>
             </section>
         </main>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
         <script type="module" src="./script.js"></script>
     </body>
 </html>

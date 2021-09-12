@@ -1,4 +1,5 @@
 import md from "../../lib/index.mjs";
+import katex from "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.mjs"; // For inline LaTeX rendering
 
 fetch("./example.md")
     .then(response => {
@@ -8,8 +9,15 @@ fetch("./example.md")
         return response.text();
     })
     .then(text => {
-        let doc = md.parser.parse(text);
-        md.render(doc, document, { image: { class_name: "responsive_img" }, spoiler: { enable: true }, parent: document.querySelector("main") });
+        let doc = md.parser.parse(text, { latex: true });
+        md.render(doc, document, {
+            image: { class_name: "responsive_img" },
+            spoiler: { enable: true },
+            latex: {
+                katex: katex
+            },
+            parent: document.querySelector("main")
+        });
 
         document.querySelectorAll(".spoiler_hidden").forEach(spoiler => {
             spoiler.addEventListener("click", _ => {

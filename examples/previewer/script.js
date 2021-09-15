@@ -36,6 +36,7 @@ function render() {
 
     let start = new Date().getTime();
     let markdown_doc = md.parser.parse(textarea.value, parser_options);
+    console.log(markdown_doc);
     console.log("Parsed in: " + (new Date().getTime() - start) + "ms");
     markdown_preview.innerHTML = "";
     start = new Date().getTime();

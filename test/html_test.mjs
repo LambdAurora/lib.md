@@ -8,6 +8,7 @@
  */
 
 import { html } from '../lib/index.mjs';
+import { readFileSync } from 'fs';
 
 let main = new html.create_element('main');
 main.attr('class', ['uwu', 'owo']);
@@ -29,7 +30,11 @@ console.log(main.toString());
 console.log(JSON.stringify(main.toJSON(), null, '  '));
 console.log(rendered);
 
+let start = new Date().getTime();
 let parsed = html.parse(rendered);
+let end = new Date().getTime();
 console.log(parsed);
 console.log(JSON.stringify(parsed.toJSON(), null, '  '));
 console.log(parsed.html());
+
+console.log("Parsed in " + (end - start) + "ms.");

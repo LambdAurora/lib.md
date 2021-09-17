@@ -78,6 +78,10 @@ pre > code {
     background: #ffffff00 !important;
 }
 
+.error {
+    color: red;
+}
+
 /* Images */
 
 .responsive_img {

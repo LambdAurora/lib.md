@@ -57,7 +57,7 @@ function render() {
 
     markdown_preview.innerHTML = "";
     start = new Date().getTime();
-    md.render_to_html(markdown_doc, document, render_options);
+    md.render(markdown_doc, document, render_options);
 
     console.log("Rendered in: " + (new Date().getTime() - start) + "ms");
 

@@ -1,5 +1,7 @@
 import { default as md, html } from "../../lib/index.mjs";
 import katex from "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.mjs"; // For inline LaTeX rendering
+import "https://cdn.jsdelivr.net/npm/prismjs@1.24.1/prism.min.js";
+import "https://cdn.jsdelivr.net/npm/prismjs@1.24.1/plugins/autoloader/prism-autoloader.min.js"
 import "https://cdn.jsdelivr.net/npm/emoji-js@3.6.0/lib/emoji.min.js";
 
 const markdown_preview = document.getElementById("markdown_preview");
@@ -21,6 +23,15 @@ let parser_options = {
     newline_as_linebreaks: false
 };
 let render_options = {
+    block_code: {
+        highlighter: (code, language, parent) => {
+            if (Prism.languages[language]) {
+                html.parse(Prism.highlight(code, Prism.languages[language], language), parent);
+            } else {
+                parent.append_child(new html.Text(code));
+            }
+        }
+    },
     emoji: node => {
         return html.parse(emoji.replace_colons(node.toString()));
     },

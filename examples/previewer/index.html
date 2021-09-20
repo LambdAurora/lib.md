@@ -11,6 +11,17 @@
 
         <!--Let browser know website is optimized for mobile-->
         <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+        <style>
+            #editor, #preview {
+                max-width: 50%;
+            }
+
+            #editor {
+                display: flex;
+                flex-direction: column;
+            }
+        </style>
     </head>
     <body>
         <header>
@@ -27,13 +38,15 @@
                     <input type="checkbox" id="indent_as_code" name="indent_as_code">
                     <label for="indent_as_code">Enable indent as code block</label>
                 </div>
-                <textarea id="markdown_editor"></textarea>
+                <textarea id="markdown_editor" style="resize: none;"></textarea>
             </section>
-            <section id="preview">
+            <section id="preview" style="padding: 0 1em;">
                 <div id="markdown_preview"></div>
             </section>
         </main>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/prismjs@1.24.1/components/prism-core.min.js" data-manual></script>
+        <script src="https://cdn.jsdelivr.net/npm/prismjs@1.24.1/plugins/autoloader/prism-autoloader.js"></script>
         <script type="module" src="./script.js"></script>
     </body>
 </html>

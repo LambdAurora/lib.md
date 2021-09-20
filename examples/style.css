@@ -23,17 +23,17 @@ header {
 
 main {
     display: flex;
+    flex: 1 0 auto;
     flex-direction: row;
     width: 100%;
 }
 
 section {
-    width: 100%;
+    flex: 1 0 auto;
 }
 
 textarea {
-    width: 90%;
-    height: 100%;
+    flex: 1 0 auto;
 }
 
 body > *:not(h1, h2, h3, h4, h5, h6) {
@@ -92,6 +92,7 @@ pre > code {
     padding: 0 !important;
     margin: 0 !important;
     border: 0px !important;
+    color: initial;
     background: #ffffff00 !important;
 }
 
@@ -145,8 +146,7 @@ div.spoiler {
 pre {
     /*width: min-content;*/
     overflow-x: auto;
-    background-color: #141414;
-    color: #ccc;
+    background-color: #f5f2f0;
     padding: 16px;
     line-height: 1.45;
     border: 1px solid #ffffff1a !important;

@@ -1,5 +1,5 @@
-import md from "../../lib/index.mjs";
-import katex from "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.mjs"; // For inline LaTeX rendering
+import { default as md, html } from "../../lib/index.mjs";
+import "https://cdn.jsdelivr.net/npm/prismjs@1.24.1/prism.min.js";
 
 fetch("./example.md")
     .then(response => {
@@ -9,13 +9,19 @@ fetch("./example.md")
         return response.text();
     })
     .then(text => {
-        let doc = md.parser.parse(text, { latex: true });
+        let doc = md.parser.parse(text, { latex: false });
         md.render(doc, document, {
+            block_code: {
+                highlighter: (code, language, parent) => {
+                    if (Prism.languages[language]) {
+                        html.parse(Prism.highlight(code, Prism.languages[language], language), parent);
+                    } else {
+                        parent.append_child(new html.Text(code));
+                    }
+                }
+            },
             image: { class_name: "responsive_img" },
             spoiler: { enable: true },
-            latex: {
-                katex: katex
-            },
             parent: document.querySelector("main")
         });
 

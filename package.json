@@ -1,11 +1,12 @@
 {
   "name": "lib.md",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "A Markdown parser and HTML renderer written in JS.",
   "main": "./lib/index.mjs",
   "scripts": {
     "test": "node test/test.mjs",
-    "html_test": "node test/html_test.mjs"
+    "html_test": "node test/html_test.mjs",
+    "test/component/table": "node test/component/table.mjs"
   },
   "repository": {
     "type": "git",

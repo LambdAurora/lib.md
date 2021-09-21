@@ -14,6 +14,7 @@ delete emoji.data["2764-fe0f"];
 emoji.init_colons();
 
 let parser_options = {
+    auto_link: true,
     emoji: {
         dictionary: Object.keys(emoji.map.colons)
     },

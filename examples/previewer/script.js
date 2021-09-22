@@ -14,23 +14,23 @@ delete emoji.data["2764-fe0f"];
 emoji.init_colons();
 
 let parser_options = {
-    auto_link: true,
-    emoji: {
-        dictionary: Object.keys(emoji.map.colons)
-    },
-    latex: true,
-    newline_as_linebreaks: false
+	auto_link: true,
+	emoji: {
+		dictionary: Object.keys(emoji.map.colons)
+	},
+	latex: true,
+	newline_as_linebreaks: false
 };
 let render_options = {
-    emoji: node => {
-        return html.parse(emoji.replace_colons(node.toString()));
-    },
-    image: { class_name: "responsive_img" },
-    latex: {
-        katex: katex
-    },
-    spoiler: { enable: true },
-    parent: markdown_preview
+	emoji: node => {
+		return html.parse(emoji.replace_colons(node.toString()));
+	},
+	image: { class_name: "responsive_img" },
+	latex: {
+		katex: katex
+	},
+	spoiler: { enable: true },
+	parent: markdown_preview
 };
 
 const textarea = document.getElementById("markdown_editor");
@@ -38,7 +38,7 @@ const checkbox_newline_as_linebreaks = document.getElementById("newline_as_lineb
 const checkbox_indent_as_code = document.getElementById("indent_as_code");
 
 if (localStorage.getItem("text")) {
-    textarea.value = localStorage.getItem("text");
+	textarea.value = localStorage.getItem("text");
 }
 
 textarea.addEventListener("input", render);
@@ -46,47 +46,47 @@ checkbox_newline_as_linebreaks.addEventListener("click", render);
 checkbox_indent_as_code.addEventListener("click", render);
 
 function render() {
-    parser_options.newline_as_linebreaks = checkbox_newline_as_linebreaks.checked;
-    parser_options.code_block_from_indent = checkbox_indent_as_code.checked;
+	parser_options.newline_as_linebreaks = checkbox_newline_as_linebreaks.checked;
+	parser_options.code_block_from_indent = checkbox_indent_as_code.checked;
 
-    localStorage.setItem("text", textarea.value);
+	localStorage.setItem("text", textarea.value);
 
-    let start = new Date().getTime();
-    let markdown_doc = md.parser.parse(textarea.value, parser_options);
-    console.log(markdown_doc);
-    console.log("Parsed in: " + (new Date().getTime() - start) + "ms");
+	let start = new Date().getTime();
+	let markdown_doc = md.parser.parse(textarea.value, parser_options);
+	console.log(markdown_doc);
+	console.log("Parsed in: " + (new Date().getTime() - start) + "ms");
 
-    markdown_preview.innerHTML = "";
-    start = new Date().getTime();
-    md.render(markdown_doc, document, render_options);
+	markdown_preview.innerHTML = "";
+	start = new Date().getTime();
+	md.render(markdown_doc, document, render_options);
 
-    console.log("Rendered Markdown in: " + (new Date().getTime() - start) + "ms");
+	console.log("Rendered Markdown in: " + (new Date().getTime() - start) + "ms");
 
-    // Highlight all code blocks.
-    for (const element of markdown_preview.querySelectorAll("pre code[class*='language-']")) {
-        Prism.highlightElement(element);
-    }
+	// Highlight all code blocks.
+	for (const element of markdown_preview.querySelectorAll("pre code[class*='language-']")) {
+		Prism.highlightElement(element);
+	}
 
-    console.log("Rendered in: " + (new Date().getTime() - start) + "ms");
+	console.log("Rendered in: " + (new Date().getTime() - start) + "ms");
 
-    document.querySelectorAll(".spoiler_hidden").forEach(spoiler => {
-        spoiler.addEventListener("click", _ => {
-            spoiler.classList.remove("spoiler_hidden");
-        });
-    });
+	document.querySelectorAll(".spoiler_hidden").forEach(spoiler => {
+		spoiler.addEventListener("click", _ => {
+			spoiler.classList.remove("spoiler_hidden");
+		});
+	});
 }
 
 document.querySelector("#pdf_export").addEventListener("click", button => {
-    console.log(markdown_preview);
-    let opt = {
-        margin:      1,
-        filename:    "preview.pdf",
-        pagebreak:   { mode: ["avoid-all", "css"], avoid: [".katex-display"] },
-        image:       { type: "jpeg", quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF:       { unit: "in", format: "letter", orientation: "portrait" }
-    };
-    html2pdf(markdown_preview, opt).save();
+	console.log(markdown_preview);
+	let opt = {
+		margin:      1,
+		filename:    "preview.pdf",
+		pagebreak:   { mode: ["avoid-all", "css"], avoid: [".katex-display"] },
+		image:       { type: "jpeg", quality: 0.98 },
+		html2canvas: { scale: 2 },
+		jsPDF:       { unit: "in", format: "letter", orientation: "portrait" }
+	};
+	html2pdf(markdown_preview, opt).save();
 });
 
 render();

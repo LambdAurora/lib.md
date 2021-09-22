@@ -1,172 +1,172 @@
 html {
-    font-family: 'Roboto', sans-serif; /* Define the general font */
-    --theme-color: #ff9800;
+	font-family: 'Roboto', sans-serif; /* Define the general font */
+	--theme-color: #ff9800;
 }
 
 body {
-    display: flex;
-    flex-direction: column;
-    margin: 0;
-    min-height: 100vh;
-    height: 100%;
+	display: flex;
+	flex-direction: column;
+	margin: 0;
+	min-height: 100vh;
+	height: 100%;
 }
 
 header {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    align-items: center;
-    justify-content: center;
-    background-color: #212329;
-    color: var(--theme-color);
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	align-items: center;
+	justify-content: center;
+	background-color: #212329;
+	color: var(--theme-color);
 }
 
 main {
-    display: flex;
-    flex: 1 0 auto;
-    flex-direction: row;
-    width: 100%;
+	display: flex;
+	flex: 1 0 auto;
+	flex-direction: row;
+	width: 100%;
 }
 
 section {
-    flex: 1 0 auto;
+	flex: 1 0 auto;
 }
 
 textarea {
-    flex: 1 0 auto;
+	flex: 1 0 auto;
 }
 
 body > *:not(h1, h2, h3, h4, h5, h6) {
-    margin-block-start: 0;
+	margin-block-start: 0;
 }
 
 h1, h2, h3, h4, h5, h6 {
-    page-break-inside: avoid;
+	page-break-inside: avoid;
 }
 
 body > ol, body > ul {
-    margin-block-end: 0;
+	margin-block-end: 0;
 }
 
 nav.toolbar {
-    background-color: #999;
+	background-color: #999;
 }
 
 span.toolbar_button {
-    cursor: pointer;
+	cursor: pointer;
 }
 
 /* Typopography */
 
 .strikethrough {
-    text-decoration: line-through;
+	text-decoration: line-through;
 }
 
 .underline {
-    text-decoration: underline;
+	text-decoration: underline;
 }
 
 mark {
-    background-color: red;
+	background-color: red;
 }
 
 blockquote {
-    border-left: solid red;
-    padding-left: 1em;
+	border-left: solid red;
+	padding-left: 1em;
 }
 
 code {
-    padding: .2em .4em;
-    margin: 0;
-    border-radius: 3px;
-    font-size: 90%;
-    border: 1px solid #ffffff1a !important;
-    background: #222;
-    color: #bebebe;
+	padding: .2em .4em;
+	margin: 0;
+	border-radius: 3px;
+	font-size: 90%;
+	border: 1px solid #ffffff1a !important;
+	background: #222;
+	color: #bebebe;
 
-    font-family: "Menlo", Consolas, "Liberation Mono", Menlo, Courier, monospace !important;
-    font-feature-settings: normal !important;
+	font-family: "Menlo", Consolas, "Liberation Mono", Menlo, Courier, monospace !important;
+	font-feature-settings: normal !important;
 }
 
 pre > code {
-    padding: 0 !important;
-    margin: 0 !important;
-    border: 0px !important;
-    color: initial;
-    background: #ffffff00 !important;
+	padding: 0 !important;
+	margin: 0 !important;
+	border: 0px !important;
+	color: initial;
+	background: #ffffff00 !important;
 }
 
 .error {
-    color: red;
+	color: red;
 }
 
 /* Images */
 
 .responsive_img {
-    width: 100%;
-    max-width: 600px;
-    height: auto;
+	width: 100%;
+	max-width: 600px;
+	height: auto;
 }
 
 /* Inline spoilers */
 
 span.spoiler {
-    background-color: rgba(0, 0, 0, 0.2);
+	background-color: rgba(0, 0, 0, 0.2);
 }
 
 span.spoiler_hidden {
-    cursor: pointer;
-    background-color: rgba(0, 0, 0);
+	cursor: pointer;
+	background-color: rgba(0, 0, 0);
 }
 
 span.spoiler_hidden > span {
-    opacity: 0;
+	opacity: 0;
 }
 
 .spoiler_hidden * {
-    pointer-events: none;
+	pointer-events: none;
 }
 
 /* Image spoilers */
 
 div.spoiler {
-    display: inline-block;
-    overflow: hidden;
+	display: inline-block;
+	overflow: hidden;
 }
 
 .spoiler_img.spoiler_hidden {
-    filter: blur(66px);
+	filter: blur(66px);
 }
 
 .block_code {
-    max-width: 100vw;
-    overflow-x: auto;
+	max-width: 100vw;
+	overflow-x: auto;
 }
 
 pre {
-    /*width: min-content;*/
-    overflow-x: auto;
-    background-color: #f5f2f0;
-    padding: 16px;
-    line-height: 1.45;
-    border: 1px solid #ffffff1a !important;
-    border-radius: 3px;
+	/*width: min-content;*/
+	overflow-x: auto;
+	background-color: #f5f2f0;
+	padding: 16px;
+	line-height: 1.45;
+	border: 1px solid #ffffff1a !important;
+	border-radius: 3px;
 }
 
 /* Tables */
 
 table {
-    display: block;
-    width: 100%;
-    overflow: auto;
-    border-collapse: collapse;
+	display: block;
+	width: 100%;
+	overflow: auto;
+	border-collapse: collapse;
 }
 
 table td, table th {
-    padding: 6px 13px;
-    border: 1px solid #777;
+	padding: 6px 13px;
+	border: 1px solid #777;
 }
 
 table td img, table th img {
-    vertical-align: middle;
+	vertical-align: middle;
 }

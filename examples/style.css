@@ -152,3 +152,21 @@ pre {
     border: 1px solid #ffffff1a !important;
     border-radius: 3px;
 }
+
+/* Tables */
+
+table {
+    display: block;
+    width: 100%;
+    overflow: auto;
+    border-collapse: collapse;
+}
+
+table td, table th {
+    padding: 6px 13px;
+    border: 1px solid #777;
+}
+
+table td img, table th img {
+    vertical-align: middle;
+}

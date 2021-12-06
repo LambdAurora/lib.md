@@ -10,7 +10,7 @@ const markdown_path = Deno.args[0];
 
 const decoder = new TextDecoder("utf-8");
 const content = decoder.decode(await Deno.readFile(markdown_path));
-let doc = md.parser.parse(content, { latex: true });
+let doc = md.parser.parse(content, { latex: true, auto_link: true });
 
 let main = html.create_element("main");
 md.render_to_html(doc, {

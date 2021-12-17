@@ -15,3 +15,11 @@
 Run a webserver in this directory (if you have it type `http-server . -p 8080`) then open `localhost:8080/examples/rendering_simple/` in your web browser.
 
 The `file_render` example requires deno with `--allow-write` and `--allow-read`, and a file path to a markdown file.
+
+## Use
+
+To use the latest version available:
+
+```js
+import { default as md, html } from "https://lambdaurora.dev/lib.md/lib/index.mjs";
+```

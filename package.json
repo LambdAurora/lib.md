@@ -1,11 +1,12 @@
 {
   "name": "lib.md",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "A Markdown parser and HTML renderer written in JS.",
   "main": "./lib/index.mjs",
   "scripts": {
     "test": "node test/test.mjs",
     "html_test": "node test/html_test.mjs",
+    "test/lexer": "deno run test/lexer_test.mjs",
     "test/component/list": "node test/component/list.mjs",
     "test/component/table": "node test/component/table.mjs"
   },

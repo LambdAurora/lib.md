@@ -64,11 +64,23 @@ code {
 	border-radius: 3px;
 	font-size: 90%;
 	border: 1px solid #ffffff1a !important;
-	background: #222;
-	color: #bebebe;
+	background: #e0e0e0;
 
 	font-family: "Menlo", Consolas, "Liberation Mono", Menlo, Courier, monospace !important;
 	font-feature-settings: normal !important;
+}
+
+table {
+	table-layout: fixed;
+	border-collapse: collapse;
+}
+
+td, th {
+	border: 1px solid var(--ls_theme_border_color);
+}
+
+td {
+	padding: 0.5em;
 }
 
 pre > code {

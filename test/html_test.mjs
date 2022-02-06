@@ -1,5 +1,5 @@
 /*
- * Copyright © 2021 LambdAurora <aurora42lambda@gmail.com>
+ * Copyright © 2021-2022 LambdAurora <email@lambdaurora.dev>
  *
  * This file is part of lib.md.
  *
@@ -32,6 +32,7 @@ console.log(rendered);
 
 let start = new Date().getTime();
 let parsed = html.parse(rendered);
+parsed.purge_empty_children();
 let end = new Date().getTime();
 console.log(parsed);
 console.log(JSON.stringify(parsed.toJSON(), null, '  '));

@@ -13,10 +13,13 @@ fetch("./example.md")
 		md.render(doc, document, {
 			block_code: {
 				highlighter: (code, language, parent) => {
-					if (Prism.languages[language])
-						html.parse(Prism.highlight(code, Prism.languages[language], language), parent);
-					else
-						parent.append_child(new html.Text(code));
+					if (Prism.languages[language]) {
+						const stuff = html.parse("<pre><code>"
+								+ Prism.highlight(code, Prism.languages[language], language)
+								+ "</code></pre>");
+						parent.children = stuff.get_element_by_tag_name("code").children;
+					} else
+						parent.append_child(new html.Text(code, html.TextMode.RAW));
 				}
 			},
 			image: { class_name: "responsive_img" },

@@ -30,6 +30,8 @@ console.log(main.toString());
 console.log(JSON.stringify(main.toJSON(), null, '  '));
 console.log(rendered);
 
+console.log(main.clone());
+
 let start = new Date().getTime();
 let parsed = html.parse(rendered);
 parsed.purge_empty_children();

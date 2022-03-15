@@ -2,6 +2,43 @@ import { default as md, html } from "../../lib/index.mjs";
 import katex from "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.mjs"; // For inline LaTeX rendering
 import "https://cdn.jsdelivr.net/npm/emoji-js@3.6.0/lib/emoji.min.js";
 
+{
+	const splitter = document.getElementById("splitter");
+	const editor = document.getElementById("editor");
+	const preview = document.getElementById("preview");
+
+	let editor_value = 50;
+	const preview_value = () => 100 - editor_value;
+
+	function apply() {
+		editor.style.flexBasis = `calc(${editor_value}% - 4px)`;
+		preview.style.flexBasis = `calc(${preview_value()}% - 4px)`;
+	}
+
+	apply();
+
+	let data = null;
+
+	splitter.addEventListener("mousedown", e => {
+		data = { old_x: e.clientX, old_y: e.clientY };
+	});
+
+	splitter.parentElement.addEventListener("mouseup", e => {
+		data = null;
+	});
+
+	splitter.parentElement.addEventListener("mousemove", e => {
+		if (!data) return;
+
+		const delta = { x: e.clientX - data.old_x - 8, y: e.clientY - data.old_y };
+
+		delta.x = delta.x / (editor.parentElement.scrollWidth) * 100;
+
+		editor_value = 50 + delta.x;
+		apply();
+	})
+}
+
 const markdown_preview = document.getElementById("markdown_preview");
 
 const emoji = new EmojiConvertor();
@@ -25,7 +62,7 @@ let render_options = {
 	emoji: node => {
 		return html.parse(emoji.replace_colons(node.toString()));
 	},
-	image: { class_name: "responsive_img" },
+	image: { class_name: "ls_responsive_img" },
 	latex: {
 		katex: katex
 	},
@@ -75,18 +112,5 @@ function render() {
 		});
 	});
 }
-
-document.querySelector("#pdf_export").addEventListener("click", button => {
-	console.log(markdown_preview);
-	let opt = {
-		margin:      1,
-		filename:    "preview.pdf",
-		pagebreak:   { mode: ["avoid-all", "css"], avoid: [".katex-display"] },
-		image:       { type: "jpeg", quality: 0.98 },
-		html2canvas: { scale: 2 },
-		jsPDF:       { unit: "in", format: "letter", orientation: "portrait" }
-	};
-	html2pdf(markdown_preview, opt).save();
-});
 
 render();

@@ -67,6 +67,11 @@ let render_options = {
 		katex: katex
 	},
 	spoiler: { enable: true },
+	table: {
+		process: t => {
+			t.attr("class", "ls_grid_table");
+		}
+	},
 	parent: markdown_preview
 };
 

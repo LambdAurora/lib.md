@@ -4,8 +4,8 @@
   "description": "A Markdown parser and HTML renderer written in JS.",
   "main": "./lib/index.mjs",
   "scripts": {
-    "test": "node test/test.mjs",
-    "html_test": "node test/html_test.mjs",
+    "test": "deno run --allow-read test/test.mjs",
+    "html_test": "deno run test/html_test.mjs",
     "test/lexer": "deno run test/lexer_test.mjs",
     "test/component/link": "deno run test/component/link.mjs",
     "test/component/list": "node test/component/list.mjs",

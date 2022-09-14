@@ -8,34 +8,33 @@
  */
 
 import { html } from '../lib/index.mjs';
-import { readFileSync } from 'fs';
 
-let main = new html.create_element('main');
+const main = new html.create_element('main');
 main.attr('class', ['uwu', 'owo']);
 
 main.append_child(new html.Comment("Here's a very simple comment."));
 
-let img = html.create_element('img');
+const img = html.create_element('img');
 img.attr('src', 'https://foxrudor.de');
 img.attr('alt', 'Random Fox Picture');
 
-let first_paragraph = new html.create_element('p');
+const first_paragraph = new html.create_element('p');
 first_paragraph.append_child(new html.Text('hello world!'));
 first_paragraph.append_child(img);
-first_paragraph.append_child(new html.Text("Let's test escaping <span>nice?</span>"));
+first_paragraph.append_child(new html.Text("const's test escaping <span>nice?</span>"));
 main.append_child(first_paragraph);
 
-let rendered = main.html();
+const rendered = main.html();
 console.log(main.toString());
 console.log(JSON.stringify(main.toJSON(), null, '  '));
 console.log(rendered);
 
 console.log(main.clone());
 
-let start = new Date().getTime();
-let parsed = html.parse(rendered);
+const start = new Date().getTime();
+const parsed = html.parse(rendered);
 parsed.purge_empty_children();
-let end = new Date().getTime();
+const end = new Date().getTime();
 console.log(parsed);
 console.log(JSON.stringify(parsed.toJSON(), null, '  '));
 console.log(parsed.html());

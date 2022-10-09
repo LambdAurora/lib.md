@@ -1,4 +1,4 @@
-import { default as md } from "../../lib/index.mjs";
+import { md } from "../../mod.mjs";
 
 const unordered_list = new md.List(['First element', new md.Bold('Bold element')]);
 unordered_list.push(new md.ListEntry([

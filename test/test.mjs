@@ -7,7 +7,7 @@
  * see the LICENSE file.
  */
 
-import md from "../lib/index.mjs";
+import {md} from "../mod.mjs";
 
 const link = new md.Link("https://random.com", ["another ", "random", " link"], "oh no", "reference_test");
 

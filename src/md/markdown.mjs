@@ -7,20 +7,38 @@
  * see the LICENSE file.
  */
 
-import * as html from "./html.mjs";
+import * as html from "../html.mjs";
 
 /**
- * Represents an element.
+ * Represents a Markdown node.
  *
- * @version 1.2.0
+ * @version 1.7.0
+ * @since 1.7.0
+ */
+export class Node {
+	/**
+	 * Returns whether this element should be treated as a block element.
+	 *
+	 * @return {boolean} `true` if this element should be treated as a block element, otherwise `false`
+	 */
+	is_block() {
+		return false;
+	}
+}
+
+/**
+ * Represents a Markdown element.
+ *
+ * @version 1.7.0
  * @since 1.0.0
  */
-export class Element {
+export class Element extends Node {
 	/**
-	 * @param {string|(Element|Text|string)[]} nodes the inner nodes of the element
+	 * @param {string|(Node|string)[]} nodes the inner nodes of the element
 	 * @param {boolean} allow_linebreaks `true` if linebreaks are allowed inside this element, else `false`.
 	 */
 	constructor(nodes = [], allow_linebreaks = true) {
+		super();
 		if (typeof nodes === "string" || nodes instanceof Element) {
 			nodes = [nodes];
 		}
@@ -34,18 +52,9 @@ export class Element {
 	}
 
 	/**
-	 * Returns whether this element should be treated as a block element.
-	 *
-	 * @return {boolean} `true` if this element should be treated as a block element, otherwise `false`
-	 */
-	is_block() {
-		return false;
-	}
-
-	/**
 	 * Pushes a new node in this element.
 	 *
-	 * @param {string|Element} node the node to push
+	 * @param {string|Node} node the node to push
 	 * @return this element
 	 */
 	push(node) {
@@ -128,21 +137,18 @@ export class Reference {
  */
 
 /**
- * Represents a text node.
+ * Represents a Markdown text node.
  *
- * @version 1.2.0
+ * @version 1.7.0
  * @since 1.0.0
  */
-export class Text {
+export class Text extends Node {
 	/**
 	 * @param {string} content the text content
 	 */
 	constructor(content) {
+		super();
 		this.content = content;
-	}
-
-	is_block() {
-		return false;
 	}
 
 	is_linebreak() {
@@ -423,9 +429,9 @@ export class Spoiler extends Element {
 export class Link extends Element {
 	/**
 	 * @param {string} url the URL to link
-	 * @param {string|(Element|Text|string)[]} title the title
-	 * @param {string} tooltip the optional tooltip
-	 * @param {string} reference non-empty string if the link is referenced later in the document
+	 * @param {string|Node|(Node|string)[]} title the title
+	 * @param {string|undefined} tooltip the optional tooltip
+	 * @param {string|undefined} reference non-empty string if the link is referenced later in the document
 	 */
 	constructor(url, title, tooltip, reference) {
 		if (title === undefined || title === "") {
@@ -752,6 +758,15 @@ class TableAlignment {
 		this.style_table_data = style_table_data;
 	}
 
+	/**
+	 * Gets the name of this alignment.
+	 *
+	 * @returns {string} the name of this alignment
+	 */
+	get_name() {
+		return this.name;
+	}
+
 	to_pretty_string(column_length) {
 		if (column_length < 5)
 			column_length = 5;
@@ -861,7 +876,7 @@ export class TableRow extends BlockElement {
 	}
 
 	toJSON() {
-		return { type: "table_row", columns: this.nodes };
+		return { type: "table_row", columns: this.nodes.map(node => node.toJSON()) };
 	}
 }
 
@@ -876,7 +891,7 @@ export class TableEntry extends BlockElement {
 	}
 
 	toJSON() {
-		return { type: "table_entry", nodes: this.nodes };
+		return { type: "table_entry", nodes: this.nodes.map(node => node.toJSON()) };
 	}
 }
 

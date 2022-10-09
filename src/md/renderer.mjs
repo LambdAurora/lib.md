@@ -8,8 +8,8 @@
  */
 
 import * as md from "./markdown.mjs";
-import * as html from "./html.mjs";
-import { merge_objects } from "./utils.mjs";
+import * as html from "../html.mjs";
+import { merge_objects } from "../utils.mjs";
 
 const DEFAULT_OPTIONS = {
 	block_code: {

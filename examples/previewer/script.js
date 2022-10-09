@@ -1,4 +1,4 @@
-import { default as md, html } from "../../lib/index.mjs";
+import { md, html } from "../../mod.mjs";
 import katex from "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.mjs"; // For inline LaTeX rendering
 import "https://cdn.jsdelivr.net/npm/emoji-js@3.6.0/lib/emoji.min.js";
 

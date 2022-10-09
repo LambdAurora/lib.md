@@ -1,5 +1,5 @@
-import { assertEquals, assertInstanceOf } from "https://deno.land/std@0.157.0/testing/asserts.ts";
-import * as html from "../../lib/html.mjs";
+import { assertEquals, assertInstanceOf } from "@std/testing/asserts.ts";
+import * as html from "../../src/html.mjs";
 
 Deno.test("style/formatting", () => {
 	const el = html.parse(/*html*/`<span style="display: flex;flex-direction:column;    color: blue;"></span>`) as html.Element;

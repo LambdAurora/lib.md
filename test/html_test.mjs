@@ -7,7 +7,7 @@
  * see the LICENSE file.
  */
 
-import { html } from '../lib/index.mjs';
+import { html } from '../mod.mjs';
 
 const main = new html.create_element('main');
 main.attr('class', ['uwu', 'owo']);

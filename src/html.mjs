@@ -1259,7 +1259,7 @@ function parse_html(source, parent) {
  * @param {string} source the HTML source
  * @returns {{node: Element, length: number, self_closing: boolean}|null} `null` if no HTML tag start is present,
  * or an object containing the parsed element, the length it takes in the source,
- * and whether the tag is self closing or not otherwise
+ * and whether the tag is self-closing or not otherwise
  */
 function parse_tag_start(source) {
 	const tag_result = source.match(/^<([^<>\s/]+)/);

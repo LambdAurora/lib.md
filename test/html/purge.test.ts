@@ -1,5 +1,5 @@
-import { assertEquals } from "https://deno.land/std@0.157.0/testing/asserts.ts";
-import * as html from "../../lib/html.mjs";
+import { assertEquals } from "@std/testing/asserts.ts";
+import * as html from "../../src/html.mjs";
 
 Deno.test("html.Element::purge_empty_children - preserve space between 2 elements that requires it", () => {
 	const source = /*html*/`<div>Hello: <a href="https://randomfox.ca/">Random Fox!</a> <b>Isn't it cute?</b></div>`;

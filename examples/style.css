@@ -1,6 +1,6 @@
 html {
 	font-family: 'Roboto', sans-serif; /* Define the general font */
-	--theme-color: #ff9800;
+	--theme-color: #f90;
 }
 
 body {
@@ -56,7 +56,7 @@ span.toolbar_button {
 	cursor: pointer;
 }
 
-/* Typopography */
+/* Typography */
 
 .strikethrough {
 	text-decoration: line-through;

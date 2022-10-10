@@ -465,7 +465,7 @@ export class Element extends Node {
 				result += "\n";
 			}
 
-			const inner_result = this.inner_html(get_render_sub_options(options, this, false, this.tag === Tag.pre ? -1 : 1));
+			const inner_result = this.inner_html(get_render_sub_options(options, this, null, false, this.tag === Tag.pre ? -1 : 1));
 
 			if (options.is_self_prettified(this) && inner_result !== ""
 				&& !is_character_match(inner_result, NEW_LINE_CODE_POINT, inner_result.length - 1)) {
@@ -482,7 +482,7 @@ export class Element extends Node {
 			result += "</" + this.tag.name + ">";
 		}
 
-		if (options.prettified && options.parent && !options.parent.tag.inline) {
+		if (options.should_add_lf()) {
 			result += "\n";
 		}
 
@@ -497,7 +497,7 @@ export class Element extends Node {
 		if (this.children.length !== 0) {
 			let last;
 
-			for (const i in this.children) {
+			for (let i = 0; i < this.children.length; i++) {
 				const child = this.children[i];
 				let indent_add = 0;
 
@@ -513,11 +513,13 @@ export class Element extends Node {
 						if (last_line && last_line[0].length + child.content.length <= options.line_length) {
 							result = result.substring(0, result.length - 1);
 							indent_add = -1;
+						} else if (!child.content.match(/^\s/)) {
+							indent_add = -1;
 						}
 					}
 				}
 
-				const sub_options = get_render_sub_options(options, this, !this.tag.escape_inside, indent_add);
+				const sub_options = get_render_sub_options(options, this, this.children[i + 1], !this.tag.escape_inside, indent_add);
 
 				// Attempt to determine if we should strip whitespaces in front of text if it's indented on a new line.
 				if (result.length === 0 || is_character_match(result, NEW_LINE_CODE_POINT, result.length - 1)) {
@@ -541,7 +543,7 @@ export class Element extends Node {
 								if (last_line && last_line[0].length + stripped.length <= options.line_length) {
 									child_content = stripped;
 								} else {
-									child_content = "\n" + child_content;
+									child_content = result.match(/\s$/) ? "\n" + child_content : stripped;
 								}
 							}
 						} else { // We have a non-inline element after text, put it on next line.
@@ -1035,6 +1037,13 @@ const DEFAULT_RENDER_OPTIONS = {
 		} else {
 			return "";
 		}
+	},
+	should_add_lf: function() {
+		if (this.next_sibling && this.next_sibling instanceof Text && !(this.next_sibling instanceof Comment)
+			&& !this.next_sibling.content.match(/^\s/)) {
+			return false;
+		}
+		return this.prettified && this.parent && !this.parent.tag.inline;
 	}
 };
 
@@ -1045,11 +1054,12 @@ function merge_render_options(options) {
 	return merge_objects(DEFAULT_RENDER_OPTIONS, options);
 }
 
-function get_render_sub_options(options, parent, raw, indent) {
+function get_render_sub_options(options, parent, next_sibling, raw, indent) {
 	return {
 		raw: options.raw || raw,
 		prettified: options.prettified,
 		parent: parent,
+		next_sibling: next_sibling,
 		indent: indent === -1 ? 0 : options.indent + indent
 	};
 }

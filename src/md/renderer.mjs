@@ -187,7 +187,7 @@ function render_inline(markdown, nodes, options, allow_linebreak = false) {
 			return render_simple(markdown, node, options, "em", allow_linebreak);
 		} else if (node instanceof md.Strikethrough) {
 			const element = render_simple(markdown, node, options, "span", allow_linebreak);
-			element.className = options.strikethrough.class_name;
+			element.attr("class", options.strikethrough.class_name);
 			return element;
 		} else if (node instanceof md.Underline && options.underline.enable) {
 			const element = render_simple(markdown, node, options, "span", allow_linebreak);
@@ -195,8 +195,15 @@ function render_inline(markdown, nodes, options, allow_linebreak = false) {
 			return element;
 		} else if (node instanceof md.Highlight) {
 			if (!options.highlight.enable) {
-				// @TODO interpret markdown inside
-				return new html.Text(node.toString());
+				const container = html.create_element("span");
+				if (content.length !== 0 && content[0] instanceof html.Text) {
+					content[0].content = "==" + content[0].content;
+				} else {
+					container.append_child("==");
+				}
+				content.forEach(node => container.append_child(node));
+				container.append_child("==");
+				return container;
 			}
 
 			return render_simple(markdown, node, options, "mark", allow_linebreak);

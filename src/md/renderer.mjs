@@ -195,6 +195,7 @@ function render_inline(markdown, nodes, options, allow_linebreak = false) {
 			return element;
 		} else if (node instanceof md.Highlight) {
 			if (!options.highlight.enable) {
+				const content = render_inline(markdown, node.nodes, options, false);
 				const container = html.create_element("span");
 				if (content.length !== 0 && content[0] instanceof html.Text) {
 					content[0].content = "==" + content[0].content;

@@ -41,26 +41,35 @@ import "https://cdn.jsdelivr.net/npm/emoji-js@3.6.0/lib/emoji.min.js";
 
 const markdown_preview = document.getElementById("markdown_preview");
 
-const emoji = new EmojiConvertor();
-emoji.img_set = "twitter";
+const emoji_convertor = new EmojiConvertor();
+emoji_convertor.img_set = "twitter";
 // Hi, let's use Twemoji for the demo (https://twemoji.twitter.com/).
-emoji.img_sets.twitter.path = "https://twemoji.maxcdn.com/v/latest/72x72/";
+emoji_convertor.img_sets.twitter.path = "https://twemoji.maxcdn.com/v/latest/72x72/";
 // Fix the heart emoji.
-emoji.data["2764"] = emoji.data["2764-fe0f"];
-delete emoji.data["2764-fe0f"];
-emoji.init_colons();
+emoji_convertor.data["2764"] = emoji_convertor.data["2764-fe0f"];
+delete emoji_convertor.data["2764-fe0f"];
+emoji_convertor.init_colons();
 
 let parser_options = {
-	auto_link: true,
+	code: {},
 	emoji: {
-		dictionary: Object.keys(emoji.map.colons)
+		match: (emoji) => !emoji.is_custom() && emoji_convertor.map.colons[emoji.content]
 	},
 	latex: true,
-	newline_as_linebreaks: false
+	link: {
+		auto_link: true
+	},
+	meta_control: {
+		newline_as_linebreaks: false
+	}
 };
 let render_options = {
 	emoji: node => {
-		return html.parse(emoji.replace_colons(node.toString()));
+		if (node.has_variant()) {
+			return html.parse(emoji_convertor.replace_colons(`:${node.content}::skin-tone-${node.variant}:`));
+		} else {
+			return html.parse(emoji_convertor.replace_colons(node.toString()));
+		}
 	},
 	image: { class_name: "ls_responsive_img" },
 	latex: {
@@ -88,8 +97,8 @@ checkbox_newline_as_linebreaks.addEventListener("click", render);
 checkbox_indent_as_code.addEventListener("click", render);
 
 function render() {
-	parser_options.newline_as_linebreaks = checkbox_newline_as_linebreaks.checked;
-	parser_options.code_block_from_indent = checkbox_indent_as_code.checked;
+	parser_options.meta_control.newline_as_linebreaks = checkbox_newline_as_linebreaks.checked;
+	parser_options.code.block_from_indent = checkbox_indent_as_code.checked;
 
 	localStorage.setItem("text", textarea.value);
 

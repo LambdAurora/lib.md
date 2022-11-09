@@ -43,7 +43,7 @@ export class Element extends Node {
 			nodes = [nodes];
 		}
 		this.nodes = nodes.map(node => {
-			if (typeof node === "string") 
+			if (typeof node === "string")
 				node = new Text(node);
 			return node;
 		});
@@ -121,7 +121,7 @@ export class Reference {
 	/**
 	 * Returns whether this reference has a tooltip or not.
 	 *
-	 * @return {boolean} `true` if this reference has a tooltip, else `false`.
+	 * @return {boolean} `true` if this reference has a tooltip, or `false` otherwise.
 	 */
 	has_tooltip() {
 		return this.tooltip && this.tooltip !== "";
@@ -161,7 +161,7 @@ export class Text extends Node {
 
 	toJSON() {
 		if (this.is_linebreak()) {
-			return { type: "linebreak" };
+			return {type: "linebreak"};
 		} else {
 			return this.content;
 		}
@@ -169,19 +169,34 @@ export class Text extends Node {
 }
 
 /**
+ * Represents skin tones of emojis.
+ *
+ * @type {Readonly<string[]>}
+ */
+export const EmojiSkinTones = Object.freeze([
+	"light",
+	"medium_light",
+	"medium",
+	"medium_dark",
+	"dark"
+]);
+
+/**
  * Represents an emoji.
  *
- * @version 1.2.0
+ * @version 1.8.0
  * @since 1.2.0
  */
 export class Emoji extends Text {
 	/**
 	 * @param {string} id the emoji's id
-	 * @param {number|null} skin_tone the skin tome's id
+	 * @param {string|number|null} variant the emoji variant id
+	 * @param {boolean} custom `true` if the emoji is custom, or `false` otherwise
 	 */
-	constructor(id, skin_tone = null) {
+	constructor(id, variant = null, custom = false) {
 		super(id);
-		this.skin_tone = skin_tone;
+		this.variant = variant;
+		this.custom = custom;
 	}
 
 	is_linebreak() {
@@ -189,25 +204,37 @@ export class Emoji extends Text {
 	}
 
 	/**
-	 * Returns whether this emoji has a skin tone specified.
+	 * Returns whether this emoji has a variant specified.
 	 *
-	 * @returns {boolean} `true` if this emoji has a skin tone, otherwise `false`
+	 * @returns {boolean} `true` if this emoji has a variant, otherwise `false`
 	 */
-	has_skin_tone() {
-		return this.skin_tone !== null;
+	has_variant() {
+		return this.variant !== null;
+	}
+
+	/**
+	 * Returns whether this emoji is a custom emoji.
+	 *
+	 * @returns {boolean} `true` if this emoji is custom, or `false` otherwise
+	 */
+	is_custom() {
+		return this.custom;
 	}
 
 	toString() {
-		if (this.has_skin_tone())
-			return `:${super.toString()}::skin-tone-${this.skin_tone}:`;
-		else
+		if (this.has_variant()) {
+			const inside = super.toString() + '~' + this.variant;
+
+			if (this.custom)
+				return `:~${inside}:`;
+			else
+				return `:${inside}:`;
+		} else
 			return `:${super.toString()}:`;
 	}
 
 	toJSON() {
-		const json = { type: "emoji", content: this.content };
-		if (this.has_skin_tone()) json.skin_tone = this.skin_tone;
-		return json;
+		return {type: "emoji", content: this.content, variant: this.variant, custom: this.custom};
 	}
 }
 
@@ -233,7 +260,7 @@ export class InlineCode extends Text {
 	}
 
 	toJSON() {
-		return { type: "inline_code", content: this.content };
+		return {type: "inline_code", content: this.content};
 	}
 
 	as_html() {
@@ -260,7 +287,7 @@ export class InlineLink extends Text {
 	}
 
 	toJSON() {
-		return { type: "inline_link", content: this.content };
+		return {type: "inline_link", content: this.content};
 	}
 
 	as_html() {
@@ -305,7 +332,7 @@ export class Italic extends Element {
 	}
 
 	toJSON() {
-		return { type: "italic", nodes: this.nodes };
+		return {type: "italic", nodes: this.nodes};
 	}
 }
 
@@ -322,7 +349,7 @@ export class Bold extends Element {
 	}
 
 	toJSON() {
-		return { type: "bold", nodes: this.nodes };
+		return {type: "bold", nodes: this.nodes};
 	}
 }
 
@@ -347,7 +374,7 @@ export class Underline extends Element {
 	}
 
 	toJSON() {
-		return { type: "underline", nodes: this.nodes };
+		return {type: "underline", nodes: this.nodes};
 	}
 }
 
@@ -364,7 +391,7 @@ export class Strikethrough extends Element {
 	}
 
 	toJSON() {
-		return { type: "strikethrough", nodes: this.nodes };
+		return {type: "strikethrough", nodes: this.nodes};
 	}
 }
 
@@ -389,7 +416,7 @@ export class Highlight extends Element {
 	}
 
 	toJSON() {
-		return { type: "highlight", nodes: this.nodes };
+		return {type: "highlight", nodes: this.nodes};
 	}
 }
 
@@ -416,7 +443,7 @@ export class Spoiler extends Element {
 	}
 
 	toJSON() {
-		return { type: "spoiler", nodes: this.nodes };
+		return {type: "spoiler", nodes: this.nodes};
 	}
 }
 
@@ -464,7 +491,7 @@ export class Link extends Element {
 	}
 
 	toJSON() {
-		return { type: "link", url: this.ref.url, title: this.nodes, tooltip: this.ref.tooltip, ref_name: this.ref_name };
+		return {type: "link", url: this.ref.url, title: this.nodes, tooltip: this.ref.tooltip, ref_name: this.ref_name};
 	}
 }
 
@@ -484,7 +511,7 @@ export class Image extends Link {
 	}
 
 	toJSON() {
-		return { type: "image", url: this.ref.url, alt: this.nodes, tooltip: this.ref.tooltip, ref_name: this.ref_name };
+		return {type: "image", url: this.ref.url, alt: this.nodes, tooltip: this.ref.tooltip, ref_name: this.ref_name};
 	}
 }
 
@@ -551,7 +578,7 @@ export class Heading extends BlockElement {
 	}
 
 	toJSON() {
-		return { type: "heading", level: this.level, nodes: this.nodes };
+		return {type: "heading", level: this.level, nodes: this.nodes};
 	}
 }
 
@@ -561,7 +588,7 @@ export class Paragraph extends BlockElement {
 	}
 
 	toJSON() {
-		return { type: "paragraph", nodes: this.nodes };
+		return {type: "paragraph", nodes: this.nodes};
 	}
 }
 
@@ -591,7 +618,7 @@ export class BlockCode extends BlockElement {
 	}
 
 	toJSON() {
-		return { type: "block_code", code: this.code, language: this.language };
+		return {type: "block_code", code: this.code, language: this.language};
 	}
 }
 
@@ -605,7 +632,7 @@ export class BlockQuote extends BlockElement {
 	}
 
 	toJSON() {
-		return { type: "quote", nodes: this.nodes };
+		return {type: "quote", nodes: this.nodes};
 	}
 }
 
@@ -616,10 +643,12 @@ export class BlockQuote extends BlockElement {
  * @since 1.2.0
  */
 export const HORIZONTAL_RULE = Object.freeze({
-	 is_block: () => true,
-	 toString: () => "---",
-	 toJSON: () => { return { type: "horizontal_rule" }; },
-	 as_html: () => html.create_element("hr")
+	is_block: () => true,
+	toString: () => "---",
+	toJSON: () => {
+		return {type: "horizontal_rule"};
+	},
+	as_html: () => html.create_element("hr")
 });
 
 /**
@@ -680,7 +709,7 @@ export class List extends BlockElement {
 	}
 
 	toJSON() {
-		return { type: "list", entries: this.nodes, ordered: this.ordered, ordered_start: this.ordered_start };
+		return {type: "list", entries: this.nodes, ordered: this.ordered, ordered_start: this.ordered_start};
 	}
 }
 
@@ -713,7 +742,7 @@ export class ListEntry extends Element {
 	}
 
 	toJSON() {
-		return { type: "list_entry", nodes: this.nodes, sublists: this.sublists, checked: this.checked };
+		return {type: "list_entry", nodes: this.nodes, sublists: this.sublists, checked: this.checked};
 	}
 }
 
@@ -723,7 +752,7 @@ export class InlineHTML extends BlockElement {
 	}
 
 	toJSON() {
-		return { type: "inline_html", content: this.nodes };
+		return {type: "inline_html", content: this.nodes};
 	}
 }
 
@@ -746,7 +775,7 @@ export class InlineLatex extends Element {
 	}
 
 	toJSON() {
-		return { type: "inline_latex", raw: this.raw, display_mode: this.display_mode };
+		return {type: "inline_latex", raw: this.raw, display_mode: this.display_mode};
 	}
 }
 
@@ -779,9 +808,10 @@ class TableAlignment {
 	}
 }
 
-export const TableAlignments = Object.freeze(function() {
+export const TableAlignments = Object.freeze(function () {
 	const alignments = {
-		NONE: new TableAlignment("none", "-", "-", _ => {}),
+		NONE: new TableAlignment("none", "-", "-", _ => {
+		}),
 		LEFT: new TableAlignment("left", ":", "-", element => element.style("text-align", "left")),
 		CENTER: new TableAlignment("center", ":", ":", element => element.style("text-align", "center")),
 		RIGHT: new TableAlignment("right", "-", ":", element => element.style("text-align", "right"))
@@ -849,7 +879,7 @@ export class Table extends BlockElement {
 	}
 
 	toJSON() {
-		return { type: "table", rows: this.nodes.map(row => row.toJSON()), alignments: this.alignments.map(alignment => alignment.name) };
+		return {type: "table", rows: this.nodes.map(row => row.toJSON()), alignments: this.alignments.map(alignment => alignment.name)};
 	}
 }
 
@@ -876,7 +906,7 @@ export class TableRow extends BlockElement {
 	}
 
 	toJSON() {
-		return { type: "table_row", columns: this.nodes.map(node => node.toJSON()) };
+		return {type: "table_row", columns: this.nodes.map(node => node.toJSON())};
 	}
 }
 
@@ -891,7 +921,7 @@ export class TableEntry extends BlockElement {
 	}
 
 	toJSON() {
-		return { type: "table_entry", nodes: this.nodes.map(node => node.toJSON()) };
+		return {type: "table_entry", nodes: this.nodes.map(node => node.toJSON())};
 	}
 }
 
@@ -967,7 +997,7 @@ export class TableOfContents extends BlockElement {
 	}
 
 	toJSON() {
-		return { type: "table_of_contents" };
+		return {type: "table_of_contents"};
 	}
 }
 
@@ -984,7 +1014,7 @@ function get_references(element) {
 		if (element.ref_name !== "") {
 			return {name: element.ref_name, ref: element.ref};
 		}
-	// Not a Link or Image? Then retry with its child nodes.
+		// Not a Link or Image? Then retry with its child nodes.
 	} else if (element instanceof Element) {
 		return element.nodes.map(node => get_references(node)).filter(node => node !== undefined).flat();
 	}
@@ -1022,7 +1052,7 @@ export class MDDocument {
 	 */
 	ref(name, reference) {
 		if (!this.has_ref(name))
-			this.references.push({ name: name.toLowerCase(), ref: reference });
+			this.references.push({name: name.toLowerCase(), ref: reference});
 		return this;
 	}
 

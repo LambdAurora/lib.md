@@ -12,10 +12,10 @@ import * as html from "../html.mjs";
 import {is_whitespace, merge_objects, purge_inline_html} from "../utils.mjs";
 
 const DEFAULT_OPTIONS = {
-	allow_escape: true,
-	auto_link: false,
 	checkbox: true,
-	code_block_from_indent: false,
+	code: {
+		block_from_indent: false,
+	},
 	emoji: {
 		enabled: true,
 		dictionary: [],
@@ -24,9 +24,15 @@ const DEFAULT_OPTIONS = {
 	highlight: true,
 	image: true,
 	latex: false,
-	link: true,
+	link: {
+		standard: true,
+		auto_link: false
+	},
 	list: true,
-	newline_as_linebreaks: false,
+	meta_control: {
+		allow_escape: true,
+		newline_as_linebreaks: true
+	},
 	spoiler: true,
 	table: true,
 	table_of_contents: true,
@@ -40,10 +46,10 @@ const LIST_CHECKBOX_REGEX = /^(\[([Xx ])]\s+).+/i;
 const QUOTE_DETECTION_REGEX = /^>\s/;
 const QUOTE_MULTILINE_REGEX = /\n\s*>\s/g;
 const TABLE_DETECTION_REGEX = /^\s*\|.*\|/;
-const TABLE_SEPARATOR_REGEX = /^\s*\|(?:[ \t]*\:?-+\:?[ \t]*\|)+(\s*)$/;
-const TABLE_ALIGNMENT_REGEX = /^[ \t]*(:|-)-*(:|-)[ \t]*$/;
+const TABLE_SEPARATOR_REGEX = /^\s*\|(?:[ \t]*:?-+:?[ \t]*\|)+(\s*)$/;
+const TABLE_ALIGNMENT_REGEX = /^[ \t]*([:\-])-*([:\-])[ \t]*$/;
 
-const ESCAPED_UNICODE = /^\\(?:u([0-9A-Fa-f]{4}))|(?:x([0-9A-Fa-f]{2}))|(?:U([0-9A-Fa-f]{8}))/;
+const ESCAPED_UNICODE = /^\\u([\dA-Fa-f]{4})|x([\dA-Fa-f]{2})|U([\dA-Fa-f]{8})/;
 
 const COMMENT_START_REGEX = /^\s*<!--/;
 const COMMENT_END_REGEX = /-->/;
@@ -55,8 +61,8 @@ const INLINE_HTML_BR_REGEX = /^<(br)(?: ?\/)?>/;
 const INLINE_HTML_SINGLE_TAG = Object.values(html.Tag).filter(tag => tag.self_closing).map(tag => tag.name);
 const INLINE_HTML_IGNORE_TAG = ["iframe", "noembed", "noframes", "plaintext", "script", "style", "svg", "textarea", "title", "xmp"];
 
-const INLINE_CODE_REGEX = /^(?:```((?:.|\n)+?)```)|(?:`((?:.|\n)+?)`)/;
-const EMOJI_REGEX = /^:([A-z\d\-_+]+):(?::skin-tone-([2-6]):)?/;
+const INLINE_CODE_REGEX = /^```((?:.|\n)+?)```|`((?:.|\n)+?)`/;
+const EMOJI_REGEX = /^:(~)?([A-z\d\-_]+)(?:~([A-z\d\-_]+))?:/;
 
 // Note: this regex is unused because Firefox doesn't support named groups :c
 //const REFERENCE_REGEX = /^\[(?<name>[^\[\]]+)\]: (?<url>[a-z]+\:\/\/[.\S]+)(?: "(?<tooltip>[^"]+)")?$/;
@@ -287,13 +293,23 @@ function try_parse_inline_code(text, start) {
 	return {el: new md.InlineCode(code), skip: matched[0].length};
 }
 
-function try_parse_emoji(text, start) {
+function try_parse_emoji(text, start, options) {
 	const rest = text.substring(start);
 	const matched = rest.match(EMOJI_REGEX);
 	if (!matched)
 		return null;
 
-	return {el: new md.Emoji(matched[1], matched[2] ? parseInt(matched[2]) : null), skip: matched[0].length};
+	const custom = matched[1] !== undefined;
+	const id = matched[2];
+	const variant = matched[3];
+
+	if (custom && !variant) return null;
+
+	const emoji = new md.Emoji(id, variant ? variant : null, custom);
+
+	if (!options.emoji.match(emoji)) return null;
+
+	return {el: emoji, skip: matched[0].length};
 }
 
 function push_text_if_present(text, nodes) {
@@ -368,7 +384,7 @@ function group_blocks(string, options = {}) {
 	for (let index = 0; index < lines.length; index++) {
 		let line = lines[index];
 
-		if (options.code_block_from_indent && (found = line.match(CODE_BLOCK_INDENT_DETECTION_REGEX))
+		if (options.code.block_from_indent && (found = line.match(CODE_BLOCK_INDENT_DETECTION_REGEX))
 			&& !current_block.startsWith("list") && current_block !== "code") {
 			if (current_block !== "indent_code_block") {
 				push_group("indent_code_block");
@@ -838,7 +854,7 @@ function parse_nodes(line, allow_linebreak, options = {}) {
 		const char = line[index];
 
 		let result;
-		if (char === "\\" && options.allow_escape) {
+		if (char === "\\" && options.meta_control.allow_escape) {
 			if ((result = line.substring(index).match(ESCAPED_UNICODE))) {
 				let code = result[1];
 				if (!code) code = result[2];
@@ -895,13 +911,12 @@ function parse_nodes(line, allow_linebreak, options = {}) {
 			index += 3;
 			continue;
 		} else if (char === "\n") {
-			if (options.newline_as_linebreaks) {
+			if (options.meta_control.newline_as_linebreaks) {
 				word.push_text_if_present(nodes);
 				nodes.push(md.LINEBREAK);
 			} else word.add(" ");
 		} else if (char === ":" && options.emoji.enabled
-			&& (result = try_parse_emoji(line, index))
-			&& options.emoji.dictionary.includes(result.el.content)) {
+			&& (result = try_parse_emoji(line, index, options))) {
 			word.push_text_if_present(nodes);
 			nodes.push(result.el);
 			index += result.skip;
@@ -915,7 +930,7 @@ function parse_nodes(line, allow_linebreak, options = {}) {
 
 			index += result.skip + 1;
 			continue;
-		} else if (char === "[" && options.link && (result = try_parse_link(line, index))) {
+		} else if (char === "[" && options.link.standard && (result = try_parse_link(line, index))) {
 			// Link
 			word.push_text_if_present(nodes);
 
@@ -975,7 +990,7 @@ function parse_nodes(line, allow_linebreak, options = {}) {
 
 			index += result.skip;
 			continue;
-		} else if (options.auto_link && (result = try_parse_url(line, index))) {
+		} else if (options.link.auto_link && (result = try_parse_url(line, index))) {
 			word.push_text_if_present(nodes);
 
 			nodes.push(new md.InlineLink(result));

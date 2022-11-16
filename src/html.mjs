@@ -551,9 +551,7 @@ export class Element extends Node {
 							result = result.replace(/[ \t]$/, "");
 						}
 					} else if (last instanceof Element && child instanceof Element && options.is_prettified()) {
-						if (!result.endsWith("\n")) {
-							child_content = "\n" + child_content;
-						}
+						child_content = child_content.trimStart();
 					}
 				}
 
@@ -628,7 +626,7 @@ export class Element extends Node {
 /**
  * Represents a link element.
  * 
- * @version 1.1.0
+ * @version 1.8.1
  * @since 1.1.0
  */
 export class Link extends Element {
@@ -643,7 +641,7 @@ export class Link extends Element {
 	 * @returns {string} the new reference value
 	 */
 	href(new_value) {
-		return this.attr("href", new_value).value;
+		return this.attr("href", new_value).value();
 	}
 
 	/**
@@ -653,7 +651,7 @@ export class Link extends Element {
 	 * @returns {string} the new title
 	 */
 	title(new_value) {
-		return this.attr("title", new_value).value;
+		return this.attr("title", new_value).value();
 	}
 }
 

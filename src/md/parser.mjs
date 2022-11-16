@@ -31,7 +31,7 @@ const DEFAULT_OPTIONS = {
 	list: true,
 	meta_control: {
 		allow_escape: true,
-		newline_as_linebreaks: true
+		newline_as_linebreaks: false
 	},
 	spoiler: true,
 	table: true,

@@ -169,7 +169,7 @@ export function create_element(tag) {
 /**
  * Represents an HTML element, with a tag, attributes, and possibly children.
  *
- * @version 1.6.2
+ * @version 1.8.2
  * @since 1.1.0
  */
 export class Element extends Node {
@@ -551,7 +551,9 @@ export class Element extends Node {
 							result = result.replace(/[ \t]$/, "");
 						}
 					} else if (last instanceof Element && child instanceof Element && options.is_prettified()) {
-						child_content = child_content.trimStart();
+						if (child.tag.name !== "br") {
+							child_content = child_content.trimStart();
+						}
 					}
 				}
 
@@ -1037,8 +1039,8 @@ const DEFAULT_RENDER_OPTIONS = {
 		}
 	},
 	should_add_lf: function() {
-		if (this.next_sibling && this.next_sibling instanceof Text && !(this.next_sibling instanceof Comment)
-			&& !this.next_sibling.content.match(/^\s/)) {
+		if (this.next_sibling && (this.next_sibling instanceof Text && !(this.next_sibling instanceof Comment)
+			&& !this.next_sibling.content.match(/^\s/) || this.next_sibling instanceof Element && this.next_sibling.tag.name !== "br")) {
 			return false;
 		}
 		return this.prettified && this.parent && !this.parent.tag.inline;

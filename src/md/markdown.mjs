@@ -29,7 +29,7 @@ export class Node {
 /**
  * Represents a Markdown element.
  *
- * @version 1.7.0
+ * @version 1.8.3
  * @since 1.0.0
  */
 export class Element extends Node {
@@ -39,7 +39,7 @@ export class Element extends Node {
 	 */
 	constructor(nodes = [], allow_linebreaks = true) {
 		super();
-		if (typeof nodes === "string" || nodes instanceof Element) {
+		if (typeof nodes === "string" || nodes instanceof Node) {
 			nodes = [nodes];
 		}
 		this.nodes = nodes.map(node => {
@@ -498,12 +498,15 @@ export class Link extends Element {
 /**
  * Represents an image.
  *
- * @version 1.0.0
+ * @version 1.8.3
  * @since 1.0.0
  */
 export class Image extends Link {
 	constructor(url, alt, tooltip, reference) {
-		super(url, alt, tooltip, reference);
+		super(url, (!alt || alt === "") ? (() => {
+			if (url.startsWith("data:image/")) return "Image";
+			else return url;
+		})() : alt, tooltip, reference);
 	}
 
 	toString() {

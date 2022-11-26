@@ -1,6 +1,6 @@
 {
   "name": "lib.md",
-  "version": "1.8.2",
+  "version": "1.8.3",
   "description": "A Markdown parser and HTML renderer written in JS.",
   "main": "mod.mjs",
   "scripts": {

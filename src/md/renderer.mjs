@@ -9,7 +9,7 @@
 
 import * as md from "./markdown.mjs";
 import * as html from "../html.mjs";
-import { merge_objects } from "../utils.mjs";
+import {HTML_TAGS_TO_PURGE_SUGGESTION, merge_objects} from "../utils.mjs";
 
 const DEFAULT_OPTIONS = {
 	block_code: {
@@ -29,7 +29,7 @@ const DEFAULT_OPTIONS = {
 	},
 	inline_html: {
 		enable: true,
-		disallowed_tags: [ "iframe", "noembed", "noframes", "plaintext", "script", "style", "svg", "textarea", "title", "xmp" ]
+		disallowed_tags: HTML_TAGS_TO_PURGE_SUGGESTION
 	},
 	image: {
 		class_name: ""
@@ -60,7 +60,8 @@ const DEFAULT_OPTIONS = {
 const ATTRIBUTES_RULES = {
 	"*": [ "align", "aria-hidden", "class", "id", "lang", "style", "title" ],
 	img: [ "width", "height", "src", "alt" ],
-	a: [ "href" ]
+	a: [ "href" ],
+	iframe: [ "allow", "allowfullscreen", "frameborder", "src", "width", "height" ]
 }
 
 function sanitize_raw(node) {

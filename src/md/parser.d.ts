@@ -30,6 +30,19 @@ export interface ParserEmojiOptions {
 }
 
 /**
+ * Represents the parser options related to inline HTML.
+ *
+ * @version 1.9.0
+ * @since 1.9.0
+ */
+export interface ParserInlineHtmlOptions {
+	/**
+	 * List of disallowed HTML tags that will be sanitized.
+	 */
+	disallowed_tags?: string[];
+}
+
+/**
  * Represents the parser options related to links.
  *
  * @version 1.8.0
@@ -54,7 +67,7 @@ export interface ParserMetaControlOptions {
 /**
  * Represents the Markdown parser options.
  *
- * @version 1.8.0
+ * @version 1.9.0
  * @since 1.0.0
  */
 export interface ParserOptions {
@@ -63,6 +76,7 @@ export interface ParserOptions {
 	emoji?: ParserEmojiOptions;
 	highlight?: boolean;
 	image?: boolean;
+	inline_html?: ParserInlineHtmlOptions
 	latex?: boolean;
 	link?: ParserLinkOptions;
 	list?: boolean;

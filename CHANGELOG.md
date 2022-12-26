@@ -22,3 +22,9 @@
 ### 1.8.3
 
 - Fix image parsing throwing when the alt text is empty.
+
+## 1.9.0
+
+- Improve comment parsing to be more reliable.
+- Added disallowed HTML tags options in parser.
+- Made HTML inline parsing slightly smarter, but still not fully fixed.

@@ -9,7 +9,7 @@
 
 import * as md from "./markdown.mjs";
 import * as html from "../html.mjs";
-import {is_whitespace, merge_objects, purge_inline_html} from "../utils.mjs";
+import {HTML_TAGS_TO_PURGE_SUGGESTION, is_whitespace, merge_objects, purge_inline_html} from "../utils.mjs";
 
 const DEFAULT_OPTIONS = {
 	checkbox: true,
@@ -23,6 +23,9 @@ const DEFAULT_OPTIONS = {
 	},
 	highlight: true,
 	image: true,
+	inline_html: {
+		disallowed_tags: HTML_TAGS_TO_PURGE_SUGGESTION
+	},
 	latex: false,
 	link: {
 		standard: true,
@@ -59,7 +62,6 @@ const INLINE_HTML_CLOSER_REGEX = /<\/([A-z]+)>/gi;
 const INLINE_HTML_SKIP_REGEX = /^<(\/)?([A-z]+).*?>/;
 const INLINE_HTML_BR_REGEX = /^<(br)(?: ?\/)?>/;
 const INLINE_HTML_SINGLE_TAG = Object.values(html.Tag).filter(tag => tag.self_closing).map(tag => tag.name);
-const INLINE_HTML_IGNORE_TAG = ["iframe", "noembed", "noframes", "plaintext", "script", "style", "svg", "textarea", "title", "xmp"];
 
 const INLINE_CODE_REGEX = /^```((?:.|\n)+?)```|`((?:.|\n)+?)`/;
 const EMOJI_REGEX = /^:(~)?([A-z\d\-_]+)(?:~([A-z\d\-_]+))?:/;
@@ -275,6 +277,10 @@ function try_parse_possible_tags(text, start, delimiter, delimiter_repeat) {
 	return null;
 }
 
+function is_html_tag_allowed(tag, options) {
+	return !options.inline_html.disallowed_tags.includes(tag);
+}
+
 /**
  * Tries to parse an inline code in the text at the specified index.
  * @param {string} text The text to parse in.
@@ -418,7 +424,7 @@ function group_blocks(string, options = {}) {
 				if (current)
 					blocks.push({block: current, type: current_block});
 				current_block = "comment";
-				current = line;
+				current = line.substring(found[0].length);
 				current_group_comment = false;
 			}
 
@@ -438,6 +444,8 @@ function group_blocks(string, options = {}) {
 					index--;
 					continue;
 				}
+
+				current_group_comment = false;
 			}
 
 			// Comment
@@ -448,7 +456,7 @@ function group_blocks(string, options = {}) {
 			let tags = line.matchAll(INLINE_HTML_OPENER_REGEX);
 			let tag;
 			while ((tag = tags.next().value)) {
-				if (!INLINE_HTML_SINGLE_TAG.includes(tag[1]) && !INLINE_HTML_IGNORE_TAG.includes(tag[1])) {
+				if (!INLINE_HTML_SINGLE_TAG.includes(tag[1]) && is_html_tag_allowed(tag[1], options)) {
 					if (inline_html_opener === "") {
 						inline_html_opener = tag[1];
 						inline_html_opener_counter = 1;
@@ -458,16 +466,34 @@ function group_blocks(string, options = {}) {
 				}
 			}
 
+			let found_end = null;
 			tags = line.matchAll(INLINE_HTML_CLOSER_REGEX);
 			while ((tag = tags.next().value)) {
 				if (tag[1] === inline_html_opener) {
 					inline_html_opener_counter--;
 					if (inline_html_opener_counter <= 0) {
-						if (inline_html_opener_counter === 0)
-							current = current === null ? line : `${current}\n${line}`;
+						const end_index = tag.index + tag[0].length;
+
+						if (inline_html_opener_counter === 0) {
+							const to_eat = line.substring(0, end_index);
+							current = current === null ? to_eat : `${current}\n${to_eat}`;
+						}
 						push_group();
+
+						found_end = {
+							remaining: line.substring(end_index)
+						};
 					}
 				}
+			}
+
+			if (found_end) {
+				if (!found_end.remaining.match(/^\s*$/)) {
+					line = found_end.remaining;
+					index--;
+				}
+
+				continue;
 			}
 
 			if (line === "" && inline_html_opener === "") {
@@ -649,7 +675,7 @@ function parse_block(block, options = {}) {
 		}
 		case "inline_html": {
 			// Inline HTML
-			block = purge_inline_html(block.block);
+			block = purge_inline_html(block.block, options.inline_html.disallowed_tags);
 			const modified_options = merge_objects(options, {inline_html_block: true});
 			return new md.InlineHTML(parse_nodes(block, true, modified_options));
 		}

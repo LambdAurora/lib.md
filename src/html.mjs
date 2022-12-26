@@ -1271,7 +1271,7 @@ function parse_html(source, parent) {
  * or an object containing the parsed element, the length it takes in the source,
  * and whether the tag is self-closing or not otherwise
  */
-function parse_tag_start(source) {
+export function parse_tag_start(source) {
 	const tag_result = source.match(/^<([^<>\s/]+)/);
 	if (!tag_result)
 		return null;

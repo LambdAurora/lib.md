@@ -34,7 +34,7 @@ export function merge_objects(source, target) {
 	Object.keys(source).forEach(key => {
 		if (target[key] === undefined) {
 			target[key] = source[key];
-		} else if (typeof target[key] === "object")  {
+		} else if (typeof target[key] === "object") {
 			target[key] = merge_objects(source[key], target[key]);
 		}
 	});
@@ -68,13 +68,23 @@ export function clone_regexp(input) {
  */
 
 /**
+ * Represents a suggestion of the HTML tags to purge in a user-editable document.
+ *
+ * @type {Readonly<string[]>}
+ * @version 1.9.0
+ * @since 1.9.0
+ */
+export const HTML_TAGS_TO_PURGE_SUGGESTION = Object.freeze(["iframe", "noembed", "noframes", "plaintext", "script", "style", "svg", "textarea", "title", "xmp"]);
+
+/**
  * Purges the given HTML source of some specific tags in a markdown context.
  *
  * @param {string} html the HTML to purge
+ * @param {string[]} disallowed_tags HTML tags to purge
  * @returns {string} the purged HTML
  */
-export function purge_inline_html(html) {
-	const regex = /<\/?(?:(?:iframe)|(?:noembed)|(?:noframes)|(?:plaintext)|(?:script)|(?:style)|(?:textarea)|(?:title)|(?:xmp)).*?\>/gi;
+export function purge_inline_html(html, disallowed_tags = HTML_TAGS_TO_PURGE_SUGGESTION) {
+	const regex = new RegExp(`</?(${disallowed_tags.join("|")}).*?>`, "gi");
 	let current;
 	while ((current = regex.exec(html))) {
 		html = html.substring(0, current.index) + "&lt;" + html.substring(current.index + 1);

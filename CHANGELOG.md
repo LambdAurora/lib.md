@@ -36,3 +36,7 @@
 ### 1.9.2
 
 - Removed the `mod.d.ts` file as it was causing issues with the Deno runtime, might come back later.
+
+### 1.9.3
+
+- Restored the `mod.d.ts` file. *Sighs*, I jumped the gun a tad too quickly.

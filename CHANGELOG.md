@@ -28,3 +28,7 @@
 - Improve comment parsing to be more reliable.
 - Added disallowed HTML tags options in parser.
 - Made HTML inline parsing slightly smarter, but still not fully fixed.
+
+### 1.9.1
+
+- Fixed the `mod.d.ts` file.

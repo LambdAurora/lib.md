@@ -1,0 +1,12 @@
+{
+  "tasks": {
+    "test": "deno test --allow-read=test/ test/"
+  },
+  "importMap": "./import_map.json",
+  "fmt": {
+    "options": {
+      "useTabs": true
+    }
+  },
+  "lock": false
+}

@@ -11,5 +11,4 @@
  * @file Represents the lib.md library, which offers a Markdown parser, AST, and renderer, along with an HTML parser and AST.
  */
 
-export * as html from "./src/html.d.ts";
 export * as md from "./src/md/index.d.ts";

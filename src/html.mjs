@@ -810,7 +810,7 @@ export class ClassAttribute extends Attribute {
  * @version 1.6.2
  * @since 1.2.0
  */
- export class StyleAttribute extends Attribute {
+export class StyleAttribute extends Attribute {
 	constructor(value) {
 		super("style", "");
 

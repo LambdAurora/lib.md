@@ -40,3 +40,7 @@
 ### 1.9.3
 
 - Restored the `mod.d.ts` file. *Sighs*, I jumped the gun a tad too quickly.
+
+### 1.9.4
+
+- Fixed Markdown quote parsing.

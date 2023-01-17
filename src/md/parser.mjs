@@ -46,8 +46,8 @@ const CODE_BLOCK_INDENT_DETECTION_REGEX = /^(?:( {4})|(\t))(?!\s*\*\s*\S+)/
 const HORIZONTAL_RULE_REGEX = /^\s*(---+|\*\*\*+|___+)\s*$/
 const LIST_DETECTION_REGEX = /^ *(-|\*|\+|\d+\.) +.+/;
 const LIST_CHECKBOX_REGEX = /^(\[([Xx ])]\s+).+/i;
-const QUOTE_DETECTION_REGEX = /^>\s/;
-const QUOTE_MULTILINE_REGEX = /\n\s*>\s/g;
+const QUOTE_DETECTION_REGEX = /^>(?:\s|\s?$)/;
+const QUOTE_MULTILINE_REGEX = /\n\s*>[ \t]?/g;
 const TABLE_DETECTION_REGEX = /^\s*\|.*\|/;
 const TABLE_SEPARATOR_REGEX = /^\s*\|(?:[ \t]*:?-+:?[ \t]*\|)+(\s*)$/;
 const TABLE_ALIGNMENT_REGEX = /^[ \t]*([:\-])-*([:\-])[ \t]*$/;
@@ -332,6 +332,41 @@ function is_list_ordered(regex_match) {
 }
 
 /**
+ * Attempts to match a quote block at the given line.
+ *
+ * @param {string} line the line
+ * @param {string} current_block the current block
+ * @returns {boolean} `true` if a quote block has been matched, or `false` otherwise
+ * @since 1.9.4
+ */
+function match_quote_block(line, current_block) {
+	if (!line.match(QUOTE_DETECTION_REGEX)) {
+		return false;
+	}
+
+	return !(current_block !== "quote" && line.trim() === ">");
+}
+
+/**
+ * Creates a new block quote.
+ *
+ * @param block the current block data
+ * @param {ParserOptions} options the parser options
+ * @returns {BlockQuote} the new block quote
+ * @since 1.9.4
+ */
+function create_quote(block, options) {
+	let blocks = parse_blocks(
+		block.block.replace(QUOTE_DETECTION_REGEX, "").replace(QUOTE_MULTILINE_REGEX, "\n"),
+		merge_objects(options, {doc: null})
+	);
+
+	if (blocks.length === 1 && blocks[0] instanceof md.Paragraph) blocks = blocks[0].nodes;
+
+	return new md.BlockQuote(blocks);
+}
+
+/**
  * Parses a Markdown document from the given string.
  * @param {string} string the Markdown source
  * @param options
@@ -539,7 +574,7 @@ function group_blocks(string, options = {}) {
 			push_group("horizontal_rule");
 			current = line;
 			push_group();
-		} else if (line.match(QUOTE_DETECTION_REGEX)) {
+		} else if (match_quote_block(line, current_block)) {
 			if (current_block !== "quote") {
 				push_group("quote");
 				current = line;
@@ -652,15 +687,7 @@ function parse_block(block, options = {}) {
 			return md.HORIZONTAL_RULE;
 		case "quote":
 			// Quotes
-			return new md.BlockQuote(parse_blocks(
-				block.block.replace(QUOTE_DETECTION_REGEX, "").replace(QUOTE_MULTILINE_REGEX, "\n"),
-				merge_objects(options, {doc: null})
-			).flatMap(block => {
-				if (block instanceof md.Paragraph)
-					return block.nodes;
-				else
-					return block;
-			}));
+			return create_quote(block, options);
 		case "code":
 		case "indent_code_block": {
 			// Block code

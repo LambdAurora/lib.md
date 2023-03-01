@@ -44,3 +44,7 @@
 ### 1.9.4
 
 - Fixed Markdown quote parsing.
+
+### 1.9.5
+
+- Allow support for audio HTML.

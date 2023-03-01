@@ -1,5 +1,5 @@
 /*
- * Copyright © 2021-2022 LambdAurora <email@lambdaurora.dev>
+ * Copyright © 2021-2023 LambdAurora <email@lambdaurora.dev>
  *
  * This file is part of lib.md.
  *
@@ -61,7 +61,9 @@ const ATTRIBUTES_RULES = {
 	"*": [ "align", "aria-hidden", "class", "id", "lang", "style", "title" ],
 	img: [ "width", "height", "src", "alt" ],
 	a: [ "href" ],
-	iframe: [ "allow", "allowfullscreen", "frameborder", "src", "width", "height" ]
+	audio: [ "controls", "loop", "preload", "src" ],
+	iframe: [ "allow", "allowfullscreen", "frameborder", "src", "width", "height" ],
+	source: [ "src", "type" ]
 }
 
 function sanitize_raw(node) {

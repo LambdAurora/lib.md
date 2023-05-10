@@ -85,20 +85,58 @@ let render_options = {
 };
 
 const textarea = document.getElementById("markdown_editor");
-const checkbox_newline_as_linebreaks = document.getElementById("newline_as_linebreaks");
-const checkbox_indent_as_code = document.getElementById("indent_as_code");
+
+class OptionCheckbox {
+	constructor(name, callback, should_load) {
+		this.name = name;
+		this.el = document.getElementById(name);
+		this.el.addEventListener("click", () => {
+			callback(this);
+			this.save();
+		});
+
+		const value = window.localStorage.getItem("options." + name);
+		if (value !== undefined) {
+			this.set(value === "true");
+			if (should_load) {
+				callback(this);
+			}
+		}
+	}
+
+	get() {
+		return this.el.checked;
+	}
+
+	set(value) {
+		this.el.checked = value;
+	}
+
+	save() {
+		window.localStorage.setItem("options." + this.name, this.get());
+	}
+}
+
+const checkbox_newline_as_linebreaks = new OptionCheckbox("newline_as_linebreaks", render, false);
+const checkbox_indent_as_code = new OptionCheckbox("indent_as_code", render, false);
+
+const checkbox_indent_paragraphs = new OptionCheckbox("indent_paragraphs", (option) => {
+	if (option.get()) {
+		document.getElementById("indent_paragraphs_style").innerHTML = "p { text-indent: 2em; }";
+	} else {
+		document.getElementById("indent_paragraphs_style").innerHTML = "";
+	}
+}, true);
 
 if (localStorage.getItem("text")) {
 	textarea.value = localStorage.getItem("text");
 }
 
 textarea.addEventListener("input", render);
-checkbox_newline_as_linebreaks.addEventListener("click", render);
-checkbox_indent_as_code.addEventListener("click", render);
 
 function render() {
-	parser_options.meta_control.newline_as_linebreaks = checkbox_newline_as_linebreaks.checked;
-	parser_options.code.block_from_indent = checkbox_indent_as_code.checked;
+	parser_options.meta_control.newline_as_linebreaks = checkbox_newline_as_linebreaks.get();
+	parser_options.code.block_from_indent = checkbox_indent_as_code.get();
 
 	localStorage.setItem("text", textarea.value);
 

@@ -48,3 +48,7 @@
 ### 1.9.5
 
 - Allow support for audio HTML.
+
+### 1.9.6
+
+- Fixed Markdown parser infinite loop and some undefined issues when using inline HTML.

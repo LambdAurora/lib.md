@@ -8,6 +8,7 @@
  */
 
 import * as html from "../html.mjs";
+import {to_anchor_name} from "../utils.mjs";
 
 /**
  * Represents a Markdown node.
@@ -557,7 +558,7 @@ export class Heading extends BlockElement {
 	 * @return {string} the identifier
 	 */
 	get_id() {
-		return encodeURI(this.as_plain_text()).replace(/%20/g, "-").toLocaleLowerCase();
+		return to_anchor_name(this.as_plain_text());
 	}
 
 	toString() {
@@ -1063,11 +1064,11 @@ export class MDDocument {
 	 * Returns whether this document has a reference or not.
 	 *
 	 * @param {string} name the reference name
-	 * @return {boolean} `true` if the reference is found, else `false`
+	 * @return {boolean} `true` if the reference is found, or `false` otherwise
 	 */
 	has_ref(name) {
 		name = name.toLowerCase();
-		return this.references.find(ref => ref.name === name);
+		return this.references.some(ref => ref.name === name);
 	}
 
 	/**

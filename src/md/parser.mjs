@@ -511,7 +511,7 @@ function group_blocks(string, options = {}) {
 
 						if (inline_html_opener_counter === 0) {
 							const to_eat = line.substring(0, end_index);
-							current = current === null ? to_eat : `${current}\n${to_eat}`;
+							current = current ? `${current}\n${to_eat}` : to_eat;
 						}
 						push_group();
 
@@ -524,7 +524,7 @@ function group_blocks(string, options = {}) {
 
 			if (found_end) {
 				if (!found_end.remaining.match(/^\s*$/)) {
-					line = found_end.remaining;
+					lines[index] = found_end.remaining;
 					index--;
 				}
 

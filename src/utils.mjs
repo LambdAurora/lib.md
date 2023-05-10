@@ -92,6 +92,18 @@ export function purge_inline_html(html, disallowed_tags = HTML_TAGS_TO_PURGE_SUG
 	return html;
 }
 
+/**
+ * Returns the given text as a valid anchor name.
+ *
+ * @param {string} text the text to convert as a valid anchor name
+ * @returns {string} the anchor name
+ * @version 1.9.6
+ * @since 1.9.6
+ */
+export function to_anchor_name(text) {
+	return encodeURI(text).replace(/%20/g, "-").toLocaleLowerCase();
+}
+
 /*
  * Character stuff
  */

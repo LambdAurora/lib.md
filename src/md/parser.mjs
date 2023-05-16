@@ -21,6 +21,7 @@ const DEFAULT_OPTIONS = {
 		dictionary: [],
 		skin_tones: true
 	},
+	footnote: true,
 	highlight: true,
 	image: true,
 	inline_html: {
@@ -69,6 +70,33 @@ const EMOJI_REGEX = /^:(~)?([A-z\d\-_]+)(?:~([A-z\d\-_]+))?:/;
 // Note: this regex is unused because Firefox doesn't support named groups :c
 //const REFERENCE_REGEX = /^\[(?<name>[^\[\]]+)\]: (?<url>[a-z]+\:\/\/[.\S]+)(?: "(?<tooltip>[^"]+)")?$/;
 const REFERENCE_REGEX = /^\[([^\[\]]+)]: ((?:(?:(?:[a-z]+\:\/\/)|(?:\.{0,2}\/))[.\S]+)|(?:data\:[.\S]+)|(?:#[.\S]+))(?: "([^"]+)")?$/;
+const FOOTNOTE_REF_REGEX = /^\[\^([^\[\]]+)]: (.+)$/;
+
+function try_parse_footnote(input, start) {
+	if (input[start] === "[" && input[start + 1] === "^") {
+		// This is a footnote.
+		let length;
+		let ended = false;
+
+		// Search for the end of the footnote.
+		for (length = 0; start + 2 + length < input.length; length++) {
+			if (input[start + 2 + length] === "]") {
+				ended = true;
+				break;
+			}
+		}
+
+		if (!ended) {
+			// Invalid footnote.
+			return null;
+		}
+
+		const name = input.substring(start + 2, start + 2 + length);
+		return {footnote: name, skip: length + 3};
+	} else {
+		return null;
+	}
+}
 
 function try_parse_link(input, start) {
 	if (input[start] !== "[") {
@@ -623,6 +651,10 @@ function group_blocks(string, options = {}) {
 			current += "\n" + line.trimStart();
 		} else if (line === "") {
 			push_group();
+		} else if (options.doc && (found = line.match(FOOTNOTE_REF_REGEX)) !== null) {
+			const name = found[1];
+			const text = found[2];
+			options.doc.add_footnote(name, parse_nodes(text, false, options));
 		} else if (options.doc && (found = line.match(REFERENCE_REGEX)) !== null) {
 			const name = found[1];
 			const url = found[2];
@@ -974,7 +1006,7 @@ function parse_nodes(line, allow_linebreak, options = {}) {
 			nodes.push(result.el);
 			index += result.skip;
 			continue;
-		} else if (char === "!" && (result = try_parse_link(line, index + 1))) {
+		} else if (char === "!" && line[index + 2] !== "^" && (result = try_parse_link(line, index + 1))) {
 			// Image
 			word.push_text_if_present(nodes);
 
@@ -982,6 +1014,14 @@ function parse_nodes(line, allow_linebreak, options = {}) {
 			nodes.push(new md.Image(result.url, alt, result.tooltip, result.ref_name));
 
 			index += result.skip + 1;
+			continue;
+		} else if (char === "[" && options.footnote && (result = try_parse_footnote(line, index))) {
+			// Footnote
+			word.push_text_if_present(nodes);
+
+			nodes.push(new md.FootNoteReference(result.footnote));
+
+			index += result.skip;
 			continue;
 		} else if (char === "[" && options.link.standard && (result = try_parse_link(line, index))) {
 			// Link

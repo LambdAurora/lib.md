@@ -519,6 +519,47 @@ export class Image extends Link {
 	}
 }
 
+/**
+ * Represents a reference to a footnote.
+ *
+ * @version 1.10.0
+ * @since 1.10.0
+ */
+export class FootNoteReference extends Element {
+	constructor(name) {
+		super();
+		this.name = name;
+	}
+
+	toString() {
+		return `[^${this.name}]`;
+	}
+
+	toJSON() {
+		return {type: "footnote", name: this.name};
+	}
+
+	/**
+	 * Converts this footnote reference as HTML.
+	 *
+	 * @param {MDDocument} doc the Markdown document
+	 * @returns {html.Node} the HTML node
+	 */
+	as_html(doc) {
+		const index = doc.index_of_footnote(this.name);
+		if (index !== -1) {
+			const anchor_id = to_anchor_name(this.name.toLowerCase());
+
+			return html.create_element("sup")
+				.with_child(html.create_element("a")
+					.with_attr("id", `fn:${anchor_id}:src`)
+					.with_attr("href", "#fn:" + anchor_id)
+					.with_child(`${index + 1}`)
+				);
+		} else return new html.Text(this.name, html.TextMode.TEXT);
+	}
+}
+
 /*
  * Blocks
  */
@@ -1030,6 +1071,7 @@ export class MDDocument {
 			blocks = [];
 		this.blocks = blocks;
 		this.references = [];
+		this.footnotes = [];
 	}
 
 	/**
@@ -1072,6 +1114,46 @@ export class MDDocument {
 	}
 
 	/**
+	 * Adds a footnote to this document.
+	 *
+	 * @param {string} name the name of the footnote
+	 * @param {Node|Node[]} node the Markdown node of the content of the footnote
+	 * @returns {MDDocument} `this` document
+	 * @since 1.10.0
+	 */
+	add_footnote(name, node) {
+		if (!this.has_footnote(name)) {
+			const id = name.toLowerCase();
+			this.footnotes.push({id: id, name: name, anchor: "fn:" + to_anchor_name(id), nodes: node instanceof Array ? node : [node]});
+		}
+		return this;
+	}
+
+	/**
+	 * Returns whether this document contains the specified footnote by its name.
+	 *
+	 * @param {string} name the name of the footnote
+	 * @returns {boolean} `true` if the footnote is found, or `false` otherwise
+	 * @since 1.10.0
+	 */
+	has_footnote(name) {
+		name = name.toLowerCase();
+		return this.footnotes.some(footnote => footnote.id === name);
+	}
+
+	/**
+	 * Returns the index of the specified footnote.
+	 *
+	 * @param name the name of the footnote
+	 * @returns {number} the index of the footnote, or `-1` if no footnote could be found
+	 * @since 1.10.0
+	 */
+	index_of_footnote(name) {
+		name = name.toLowerCase();
+		return this.footnotes.findIndex((value) => value.id === name);
+	}
+
+	/**
 	 * Clears this document.
 	 *
 	 * @return {MDDocument} this document
@@ -1079,6 +1161,7 @@ export class MDDocument {
 	clear() {
 		this.blocks = [];
 		this.references = [];
+		this.footnotes = [];
 		return this;
 	}
 
@@ -1086,6 +1169,7 @@ export class MDDocument {
 		let references = this.references;
 		this.blocks.forEach(block => references = references.concat(get_references(block)));
 		return this.blocks.map(block => block.toString() + "\n").join("\n")
+			+ (this.footnotes.length !== 0 ? "\n" + this.footnotes.map(footnote => `[^${footnote.name}]: ` + footnote.toString).join("\n") + "\n" : "")
 			+ (references.length !== 0 ? "\n" + references.filter(ref => ref.ref.url !== undefined).map(ref => `[${ref.name}]: ${ref.ref.toString()}`).filter((v, i, arr) => arr.indexOf(v) === i).join("\n")
 				+ "\n" : "");
 	}
@@ -1093,7 +1177,8 @@ export class MDDocument {
 	toJSON() {
 		return {
 			blocks: this.blocks.map(block => block.toJSON()),
-			references: this.references
+			references: this.references,
+			footnotes: this.footnotes,
 		}
 	}
 }

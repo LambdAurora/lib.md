@@ -67,13 +67,17 @@ export interface ParserMetaControlOptions {
 /**
  * Represents the Markdown parser options.
  *
- * @version 1.9.0
+ * @version 1.10.0
  * @since 1.0.0
  */
 export interface ParserOptions {
 	checkbox?: boolean;
 	code?: ParserCodeOptions;
 	emoji?: ParserEmojiOptions;
+	/**
+	 * `true` to enable footnotes, or `false` otherwise
+	 */
+	footnote?: boolean;
 	highlight?: boolean;
 	image?: boolean;
 	inline_html?: ParserInlineHtmlOptions

@@ -24,6 +24,45 @@ const DEFAULT_OPTIONS = {
 		process: el => el.as_html()
 	},
 	emoji: null,
+	footnote: {
+		is_enabled() {
+			return this.render !== undefined && this.render !== null;
+		},
+		footnotes_class: "footnotes",
+		footnote_src_link_class: "footnote_src_link",
+		/**
+		 * Renders the footnotes as HTML.
+		 *
+		 * @param {{name: string, anchor: string, nodes: md.Node[]}[]} footnotes the footnotes to render
+		 * @param {(nodes: md.Node[], parent: html.Element) => void} nodes_render a callback to render nodes
+		 * @returns {html.Node[]} the array of HTML elements to append
+		 */
+		render(footnotes, nodes_render) {
+			const ol = html.create_element("ol")
+				.with_attr("class", this.footnotes_class);
+
+			footnotes.forEach((footnote, index) => {
+				const el = html.create_element("li")
+					.with_attr("id", footnote.anchor);
+
+				nodes_render(footnote.nodes, el);
+
+				el.append_child(" ");
+				el.append_child(html.create_element("a")
+					.with_attr("class", this.footnote_src_link_class)
+					.with_attr("href", `#${footnote.anchor}:src`)
+					.with_child("↩")
+				);
+
+				ol.append_child(el);
+			});
+
+			return [
+				html.create_element("hr"),
+				ol,
+			]
+		}
+	},
 	highlight: {
 		enable: true
 	},
@@ -58,12 +97,12 @@ const DEFAULT_OPTIONS = {
 }
 
 const ATTRIBUTES_RULES = {
-	"*": [ "align", "aria-hidden", "class", "id", "lang", "style", "title" ],
-	img: [ "width", "height", "src", "alt" ],
-	a: [ "href" ],
-	audio: [ "controls", "loop", "preload", "src" ],
-	iframe: [ "allow", "allowfullscreen", "frameborder", "src", "width", "height" ],
-	source: [ "src", "type" ]
+	"*": ["align", "aria-hidden", "class", "id", "lang", "style", "title"],
+	img: ["width", "height", "src", "alt"],
+	a: ["href"],
+	audio: ["controls", "loop", "preload", "src"],
+	iframe: ["allow", "allowfullscreen", "frameborder", "src", "width", "height"],
+	source: ["src", "type"]
 }
 
 function sanitize_raw(node) {
@@ -173,7 +212,7 @@ function render_inline(markdown, nodes, options, allow_linebreak = false) {
 				ref = markdown.references.find(ref => ref.name === node.ref_name);
 				if (ref)
 					ref = ref.ref;
-			} 
+			}
 			if (ref) {
 				element.href(ref.url);
 				if (ref.has_tooltip()) {
@@ -252,8 +291,10 @@ function render_inline(markdown, nodes, options, allow_linebreak = false) {
 				}
 			}
 			return element;
+		} else if (options.footnote.is_enabled() && node instanceof md.FootNoteReference) {
+			return node.as_html(markdown);
 		} else if (node.as_html) {
-			return node.as_html();
+			return node.as_html(markdown);
 		}
 	}).filter(node => node !== null && node !== undefined);
 }
@@ -321,16 +362,16 @@ function render_blocks(markdown, blocks, parent, options) {
 			parent.append_child(quote);
 		} else if (block instanceof md.InlineHTML) {
 			if (options.inline_html.enable) {
-				html.parse_nodes(render_inline(markdown, block.nodes, merge_objects(options, { should_escape: false }), true).map(node => {
+				html.parse_nodes(render_inline(markdown, block.nodes, merge_objects(options, {should_escape: false}), true).map(node => {
 					if (typeof node === "string") {
 						return node;
 					} else {
 						return node.html();
 					}
 				}).join(""))
-				.forEach(node => {
-					parent.append_child(sanitize_raw(node));
-				});
+					.forEach(node => {
+						parent.append_child(sanitize_raw(node));
+					});
 			} else {
 				const paragraph = html.create_element("p");
 
@@ -351,9 +392,10 @@ function render_blocks(markdown, blocks, parent, options) {
 			parent.append_child(render_list(markdown, block, options));
 		} else if (block instanceof md.Table) {
 			const table = html.create_element("table")
-				.with_attr("role", "table"); // See https://developer.mozilla.org/en-US/docs/Web/CSS/display#tables
+				// See https://developer.mozilla.org/en-US/docs/Web/CSS/display#tables
 				// We have to re-add the role=table to avoid destroying accessibility if a display: block is used,
 				// which is most often needed as display: table does not respect max-width rules.
+				.with_attr("role", "table");
 
 			// Head
 			const thead = html.create_element("thead")
@@ -394,7 +436,7 @@ function render_list(markdown, list, options, level = 0) {
 			li.style("list-style-type", "none");
 			const checkbox = html.create_element("input")
 				.with_attr("type", "checkbox")
-				.with_attr("style", { "list-style-type": "none", margin: "0 0.2em 0 -1.3em" });
+				.with_attr("style", {"list-style-type": "none", margin: "0 0.2em 0 -1.3em"});
 
 			if (entry.checked)
 				checkbox.attr("checked");
@@ -444,7 +486,7 @@ function render_table_row(markdown, row, head, options) {
  * @param options
  * @return {html.Element} the rendered document as a HTML element
  */
- export function render_to_html(markdown, options = {}) {
+export function render_to_html(markdown, options = {}) {
 	options = merge_default_options(options);
 	options.should_escape = true;
 
@@ -458,7 +500,7 @@ function render_table_row(markdown, row, head, options) {
 
 	if (!options.latex.render) {
 		if (options.latex.katex) {
-			options.latex.render = node => options.latex.katex.renderToString(node.raw, { displayMode: node.display_mode, output: "html" });
+			options.latex.render = node => options.latex.katex.renderToString(node.raw, {displayMode: node.display_mode, output: "html"});
 		}
 	}
 
@@ -471,10 +513,16 @@ function render_table_row(markdown, row, head, options) {
 
 	render_blocks(markdown, markdown.blocks, parent, options);
 
+	if (options.footnote.is_enabled() && markdown.footnotes.length !== 0) {
+		options.footnote.render(markdown.footnotes, (nodes, parent) => {
+			render_inline(markdown, nodes, options, false).forEach(n => parent.append_child(n));
+		}).map(child => parent.append_child(child));
+	}
+
 	parent.purge_empty_children();
 
 	return parent;
- }
+}
 
 /**
  * Renders the markdown document into an HTML DOM node.

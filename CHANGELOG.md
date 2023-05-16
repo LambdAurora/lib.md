@@ -52,3 +52,7 @@
 ### 1.9.6
 
 - Fixed Markdown parser infinite loop and some undefined issues when using inline HTML.
+
+## 1.10.0
+
+- Added footnote support.

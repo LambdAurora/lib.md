@@ -71,6 +71,9 @@ let render_options = {
 			return html.parse(emoji_convertor.replace_colons(node.toString()));
 		}
 	},
+	footnote: {
+		footnote_src_link_class: "ls_footnote_src_link"
+	},
 	image: { class_name: "ls_responsive_img" },
 	latex: {
 		katex: katex

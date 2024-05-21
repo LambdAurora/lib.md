@@ -77,7 +77,7 @@ You can put inline HTML inside your document:
 
 <p style="text-align: center">
 	<img src="https://img.shields.io/badge/language-JS-9B599A.svg?style=flat-square" alt="JS"></img>
-	<a href="https://raw.githubusercontent.com/LambdAurora/lib.md/master/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="GitHub license"></img></a>
+	<a href="https://raw.githubusercontent.com/LambdAurora/lib.md/main/LICENSE"><img src="https://img.shields.io/badge/license-MPL%202.0-blue.svg?style=flat-square" alt="GitHub license"></img></a>
 	<a href="https://github.com/LambdAurora/lib.md/issues/"><img src="https://img.shields.io/github/issues/LambdAurora/lib.md.svg?style=flat-square" alt="GitHub issues"></img></a>
 </p>
 

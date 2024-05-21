@@ -1,4 +1,5 @@
-import { md, html } from "../../mod.mjs";
+import * as md from "../../mod.ts";
+import * as html from "@lambdaurora/libhtml";
 import katex from "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.mjs"; // For inline LaTeX rendering
 
 if (Deno.args.length !== 1) {
@@ -122,7 +123,7 @@ pre {
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </head>
 <body>
-${main.html()}
+${main.html(new html.StringifyStyle("\t", 1))}
 </body>
 </html>
 `;

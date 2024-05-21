@@ -1,5 +1,6 @@
-import {html, md} from "../../mod.mjs";
-import "https://cdn.jsdelivr.net/npm/prismjs@1.24.1/prism.min.js";
+import * as html from "@lambdaurora/libhtml";
+import * as md from "../../mod.ts";
+import Prism from "https://cdn.jsdelivr.net/npm/prismjs@1.24.1/prism.min.js";
 
 await fetch("./example.md")
 	.then(response => {
@@ -10,16 +11,16 @@ await fetch("./example.md")
 	})
 	.then(text => {
 		let doc = md.parser.parse(text, {latex: false});
-		md.render(doc, document, {
+		md.render_to_dom(doc, document, {
 			block_code: {
 				highlighter: (code, language, parent) => {
-					if (Prism.languages[language]) {
+					if ((Prism.languages as any)[language]) {
 						const stuff = html.parse(
-							`<pre><code>${Prism.highlight(code, Prism.languages[language], language)}</code></pre>`
-						);
-						parent.children = stuff.get_element_by_tag_name("code").children;
+							`<pre><code>${Prism.highlight(code, (Prism.languages as any)[language], language)}</code></pre>`
+						) as html.Element;
+						parent.children = stuff.get_element_by_tag_name("code")!.children;
 					} else
-						parent.append_child(new html.Text(code, html.TextMode.RAW));
+						parent.append_child(new html.Text(code));
 				}
 			},
 			image: {class_name: "responsive_img"},

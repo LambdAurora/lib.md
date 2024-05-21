@@ -1,12 +1,45 @@
 {
-  "tasks": {
-    "test": "deno test --allow-read=test/ test/"
-  },
-  "importMap": "./import_map.json",
-  "fmt": {
-    "options": {
-      "useTabs": true
-    }
-  },
-  "lock": false
+	"name": "@lambdaurora/libmd",
+	"version": "2.0.0",
+	"exports": "./mod.ts",
+	"tasks": {
+		"build": "deno run --allow-read --allow-write --allow-net --allow-env=HOME,ESBUILD_BINARY_PATH,ESBUILD_WORKER_THREADS,XDG_CACHE_HOME,NPM_CONFIG_REGISTRY,DENO_REGISTRY_URL --allow-run build_logic/build.ts",
+		"check": "deno lint && deno check mod.ts",
+		"test": "deno test --allow-read=test/"
+	},
+	"importMap": "./import_map.json",
+	"compilerOptions": {
+		"lib": [
+			"deno.ns",
+			"dom"
+		]
+	},
+	"lint": {
+		"include": [
+			"./mod.ts",
+			"./lib/*.ts",
+			"./test/"
+		],
+		"exclude": [
+			"./dist/"
+		]
+	},
+	"fmt": {
+		"useTabs": true,
+		"lineWidth": 180,
+		"include": [
+			"./mod.ts",
+			"./lib/*.ts",
+			"./test/"
+		],
+		"exclude": [
+			"./dist/"
+		]
+	},
+	"test": {
+		"include": [
+			"./test/"
+		]
+	},
+	"lock": true
 }

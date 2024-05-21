@@ -56,3 +56,10 @@
 ## 1.10.0
 
 - Added footnote support.
+
+## 2.0.0
+
+- Rewritten in Typescript.
+- Split the HTML utilities into its own library: [lib.html](https://github.com/LambdAurora/lib.html).
+- Removed the abstracted parser framework.
+- Split the previous `md.InlineLatex` node into two nodes: `md.InlineLatex` and `md.LatexDisplay`.

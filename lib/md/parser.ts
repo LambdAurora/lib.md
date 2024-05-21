@@ -1,17 +1,108 @@
 /*
- * Copyright © 2021-2022 LambdAurora <email@lambdaurora.dev>
+ * Copyright 2024 LambdAurora <email@lambdaurora.dev>
  *
  * This file is part of lib.md.
  *
- * Licensed under the MIT license. For more information,
- * see the LICENSE file.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-import * as md from "./markdown.mjs";
-import * as html from "../html.mjs";
-import {HTML_TAGS_TO_PURGE_SUGGESTION, is_whitespace, merge_objects, purge_inline_html} from "../utils.mjs";
+import * as md from "./tree/index.ts";
+import * as html from "@lambdaurora/libhtml";
+import { HTML_TAGS_TO_PURGE_SUGGESTION, is_whitespace, purge_inline_html } from "../utils.ts";
 
-const DEFAULT_OPTIONS = {
+/**
+ * Represents the parser options related to code elements.
+ *
+ * @version 2.0.0
+ * @since 1.8.0
+ */
+export interface ParserCodeOptions {
+	block_from_indent?: boolean;
+}
+
+/**
+ * Represents the parser options related to emojis.
+ *
+ * @version 2.0.0
+ * @since 1.8.0
+ */
+export interface ParserEmojiOptions {
+	enabled?: boolean;
+	dictionary?: readonly string[];
+	match?: (emoji: md.Emoji) => boolean;
+	skin_tones?: boolean;
+}
+
+/**
+ * Represents the parser options related to inline HTML.
+ *
+ * @version 2.0.0
+ * @since 1.9.0
+ */
+export interface ParserInlineHtmlOptions {
+	/**
+	 * List of disallowed HTML tags that will be sanitized.
+	 */
+	disallowed_tags?: readonly string[];
+}
+
+/**
+ * Represents the parser options related to links.
+ *
+ * @version 2.0.0
+ * @since 1.8.0
+ */
+export interface ParserLinkOptions {
+	standard?: boolean;
+	auto_link?: boolean;
+}
+
+/**
+ * Represents the control of some meta of the parser.
+ *
+ * @version 2.0.0
+ * @since 1.8.0
+ */
+export interface ParserMetaControlOptions {
+	allow_escape?: boolean;
+	newline_as_linebreaks?: boolean;
+}
+
+/**
+ * Represents the Markdown parser options.
+ *
+ * @version 2.0.0
+ * @since 1.0.0
+ */
+export interface ParserOptions {
+	checkbox: boolean;
+	code: ParserCodeOptions;
+	emoji: ParserEmojiOptions;
+	/**
+	 * `true` to enable footnotes, or `false` otherwise
+	 */
+	footnote: boolean;
+	highlight: boolean;
+	image: boolean;
+	inline_html: ParserInlineHtmlOptions
+	latex: boolean;
+	link: ParserLinkOptions;
+	list: boolean;
+	meta_control: ParserMetaControlOptions;
+	spoiler: boolean;
+	table: boolean;
+	table_of_contents: boolean;
+	underline: boolean;
+}
+
+interface ParsingContext extends ParserOptions {
+	doc: md.Document | null;
+	inline_html_block: boolean;
+}
+
+const DEFAULT_OPTIONS: ParsingContext = {
 	checkbox: true,
 	code: {
 		block_from_indent: false,
@@ -40,7 +131,10 @@ const DEFAULT_OPTIONS = {
 	spoiler: true,
 	table: true,
 	table_of_contents: true,
-	underline: true
+	underline: true,
+
+	doc: null,
+	inline_html_block: false,
 };
 
 const CODE_BLOCK_INDENT_DETECTION_REGEX = /^(?:( {4})|(\t))(?!\s*\*\s*\S+)/
@@ -72,7 +166,7 @@ const EMOJI_REGEX = /^:(~)?([A-z\d\-_]+)(?:~([A-z\d\-_]+))?:/;
 const REFERENCE_REGEX = /^\[([^\[\]]+)]: ((?:(?:(?:[a-z]+\:\/\/)|(?:\.{0,2}\/))[.\S]+)|(?:data\:[.\S]+)|(?:#[.\S]+))(?: "([^"]+)")?$/;
 const FOOTNOTE_REF_REGEX = /^\[\^([^\[\]]+)]: (.+)$/;
 
-function try_parse_footnote(input, start) {
+function try_parse_footnote(input: string, start: number) {
 	if (input[start] === "[" && input[start + 1] === "^") {
 		// This is a footnote.
 		let length;
@@ -98,14 +192,14 @@ function try_parse_footnote(input, start) {
 	}
 }
 
-function try_parse_link(input, start) {
+function try_parse_link(input: string, start: number) {
 	if (input[start] !== "[") {
 		return null;
 	}
 
 	// Try to determine where the title/alt part ends.
 	let counter = 0;
-	let i;
+	let i: number;
 	for (i = start + 1; (i < input.length && counter >= 0); i++) {
 		if (input[i] === "[")
 			counter++;
@@ -140,7 +234,7 @@ function try_parse_link(input, start) {
 
 		const part = input.substring(i + 1, j - 1).split(" ");
 		const url = part.shift();
-		let tooltip = part.join(" ");
+		let tooltip: string | null = part.join(" ");
 		if (!tooltip.startsWith('"') || !tooltip.endsWith('"'))
 			tooltip = null;
 		else
@@ -166,7 +260,7 @@ function try_parse_link(input, start) {
 	}
 }
 
-function try_parse_url(input, start) {
+function try_parse_url(input: string, start: number) {
 	if (!(/^[A-z]$/).test(input[start]))
 		return null;
 
@@ -227,13 +321,13 @@ function try_parse_url(input, start) {
 /**
  * Tries to parse a tag in the text at the specified index.
  *
- * @param {string} text the text to parse
- * @param {number} start the tag start index
- * @param {string} delimiter the tag delimiter (1 character)
- * @param {number} delimiter_repeat how many times the tag delimiter character is repeated to form the delimiter
- * @return {{tag: string, skip: number, delimiter_repeat: number}|null} an object if the tag has been parsed successfully, else `null`
+ * @param text the text to parse
+ * @param start the tag start index
+ * @param delimiter the tag delimiter (1 character)
+ * @param delimiter_repeat how many times the tag delimiter character is repeated to form the delimiter
+ * @return an object if the tag has been parsed successfully, else `null`
  */
-function try_parse_tag(text, start, delimiter, delimiter_repeat) {
+function try_parse_tag(text: string, start: number, delimiter: string, delimiter_repeat: number) {
 	const rest = text.substring(start);
 	for (let i = 0; i < delimiter_repeat; i++) {
 		if (rest[i] !== delimiter)
@@ -243,7 +337,7 @@ function try_parse_tag(text, start, delimiter, delimiter_repeat) {
 	let found = false;
 
 	let i;
-	let saved_i = false;
+	let saved_i: number | null = null;
 	for (i = 2; i < rest.length; i++) {
 		let result;
 		if (rest[i] === "[" && (result = try_parse_link(rest, i))) {
@@ -276,7 +370,7 @@ function try_parse_tag(text, start, delimiter, delimiter_repeat) {
 		return null;
 
 	if (i >= rest.length && (rest[rest.length - 1] !== delimiter)) {
-		if (saved_i && saved_i <= rest.length) {
+		if (saved_i !== null && saved_i <= rest.length) {
 			i = saved_i + 1;
 		} else {
 			return null;
@@ -289,13 +383,13 @@ function try_parse_tag(text, start, delimiter, delimiter_repeat) {
 
 /**
  * Tries to parse a single tag by parsing with different delimiters through decreasing the delimiter repeat until a match is found.
- * @param {string} text the text to parse
- * @param {number} start the tag start index
+ * @param text the text to parse
+ * @param start the tag start index
  * @param {string} delimiter the tag delimiter (1 character)
- * @param {number} delimiter_repeat how many time the tag delimiter character is repeated to form the delimiter for the first iteration
+ * @param {number} delimiter_repeat how many times the tag delimiter character is repeated to form the delimiter for the first iteration
  * @return an object if the tag has been parsed successfully, or `null` otherwise
  */
-function try_parse_possible_tags(text, start, delimiter, delimiter_repeat) {
+function try_parse_possible_tags(text: string, start: number, delimiter: string, delimiter_repeat: number) {
 	for (let i = delimiter_repeat; i > 0; i--) {
 		const result = try_parse_tag(text, start, delimiter, i);
 		if (result)
@@ -305,16 +399,17 @@ function try_parse_possible_tags(text, start, delimiter, delimiter_repeat) {
 	return null;
 }
 
-function is_html_tag_allowed(tag, options) {
-	return !options.inline_html.disallowed_tags.includes(tag);
+function is_html_tag_allowed(tag: string, options: ParserOptions) {
+	return !options.inline_html.disallowed_tags?.includes(tag);
 }
 
 /**
  * Tries to parse an inline code in the text at the specified index.
- * @param {string} text The text to parse in.
+ *
+ * @param text The text to parse in.
  * @param start The inline code start index.
  */
-function try_parse_inline_code(text, start) {
+function try_parse_inline_code(text: string, start: number) {
 	const rest = text.substring(start);
 	const matched = rest.match(INLINE_CODE_REGEX);
 	if (!matched)
@@ -327,7 +422,7 @@ function try_parse_inline_code(text, start) {
 	return {el: new md.InlineCode(code), skip: matched[0].length};
 }
 
-function try_parse_emoji(text, start, options) {
+function try_parse_emoji(text: string, start: number, options: ParserOptions) {
 	const rest = text.substring(start);
 	const matched = rest.match(EMOJI_REGEX);
 	if (!matched)
@@ -341,12 +436,12 @@ function try_parse_emoji(text, start, options) {
 
 	const emoji = new md.Emoji(id, variant ? variant : null, custom);
 
-	if (!options.emoji.match(emoji)) return null;
+	if (options.emoji.match && !options.emoji.match(emoji)) return null;
 
 	return {el: emoji, skip: matched[0].length};
 }
 
-function push_text_if_present(text, nodes) {
+function push_text_if_present(text: string, nodes: md.Node[]): string {
 	if (text && text !== "") {
 		if (text.endsWith("\n"))
 			text = text.trimEnd();
@@ -355,19 +450,19 @@ function push_text_if_present(text, nodes) {
 	return "";
 }
 
-function is_list_ordered(regex_match) {
+function is_list_ordered(regex_match: string[]): boolean {
 	return !(regex_match[1] === "-" || regex_match[1] === "+" || regex_match[1] === "*");
 }
 
 /**
  * Attempts to match a quote block at the given line.
  *
- * @param {string} line the line
- * @param {string} current_block the current block
- * @returns {boolean} `true` if a quote block has been matched, or `false` otherwise
+ * @param line the line
+ * @param current_block the current block
+ * @returns `true` if a quote block has been matched, or `false` otherwise
  * @since 1.9.4
  */
-function match_quote_block(line, current_block) {
+function match_quote_block(line: string, current_block: string): boolean {
 	if (!line.match(QUOTE_DETECTION_REGEX)) {
 		return false;
 	}
@@ -379,52 +474,58 @@ function match_quote_block(line, current_block) {
  * Creates a new block quote.
  *
  * @param block the current block data
- * @param {ParserOptions} options the parser options
- * @returns {BlockQuote} the new block quote
+ * @param context the parser context
+ * @returns the new block quote
  * @since 1.9.4
  */
-function create_quote(block, options) {
-	let blocks = parse_blocks(
+function create_quote(block: BlockGroup, context: ParsingContext): md.BlockQuote {
+	let blocks: md.Node[] = parse_blocks(
 		block.block.replace(QUOTE_DETECTION_REGEX, "").replace(QUOTE_MULTILINE_REGEX, "\n"),
-		merge_objects(options, {doc: null})
+		html.merge_objects(context, {doc: null})
 	);
 
-	if (blocks.length === 1 && blocks[0] instanceof md.Paragraph) blocks = blocks[0].nodes;
+	if (blocks.length === 1 && blocks[0] instanceof md.Paragraph) blocks = [...blocks[0].children];
 
 	return new md.BlockQuote(blocks);
 }
 
 /**
  * Parses a Markdown document from the given string.
- * @param {string} string the Markdown source
- * @param options
- * @returns {MDDocument} the parsed Markdown document
+ *
+ * @param string the Markdown source
+ * @param options the parser options
+ * @returns the parsed Markdown document
  */
-export function parse(string, options = {}) {
-	options = merge_objects(DEFAULT_OPTIONS, options);
+export function parse(string: string, options: Partial<ParserOptions> = {}): md.Document {
+	const context = html.merge_objects(DEFAULT_OPTIONS, options) as ParsingContext;
 
-	const doc = new md.MDDocument();
+	const doc = new md.Document();
 
-	options.doc = doc;
-	parse_blocks(string, options).forEach(block => doc.push(block));
+	context.doc = doc;
+	parse_blocks(string, context).forEach(block => doc.push(block));
 
 	return doc;
 }
 
-function group_blocks(string, options = {}) {
-	options = merge_objects(DEFAULT_OPTIONS, options);
+interface BlockGroup {
+	type: string;
+	block: string;
+}
+
+function group_blocks(string: string, context: ParsingContext): BlockGroup[] {
+	context = html.merge_objects(DEFAULT_OPTIONS, context);
 
 	// The goal is to group lines to block elements.
 	const lines = string.split("\n");
 	const blocks = {
-		content: [],
-		push: function (block) {
+		content: [] as BlockGroup[],
+		push: function (block: BlockGroup) {
 			this.content.push(block);
 		}
 	};
 
 	let current_block = "none";
-	let current;
+	let current: string | null = "";
 
 	let found;
 
@@ -441,7 +542,7 @@ function group_blocks(string, options = {}) {
 		inline_html_opener_counter = 0;
 	}
 
-	function do_paragraph(line) {
+	function do_paragraph(line: string): void {
 		if (current_block !== "paragraph") {
 			push_group("paragraph");
 			current = line;
@@ -453,7 +554,7 @@ function group_blocks(string, options = {}) {
 	for (let index = 0; index < lines.length; index++) {
 		let line = lines[index];
 
-		if (options.code.block_from_indent && (found = line.match(CODE_BLOCK_INDENT_DETECTION_REGEX))
+		if (context.code.block_from_indent && (found = line.match(CODE_BLOCK_INDENT_DETECTION_REGEX))
 			&& !current_block.startsWith("list") && current_block !== "code") {
 			if (current_block !== "indent_code_block") {
 				push_group("indent_code_block");
@@ -487,7 +588,7 @@ function group_blocks(string, options = {}) {
 				if (current)
 					blocks.push({block: current, type: current_block});
 				current_block = "comment";
-				current = line.substring(found[0].length);
+				current = line.substring(found![0].length);
 				current_group_comment = false;
 			}
 
@@ -498,7 +599,7 @@ function group_blocks(string, options = {}) {
 					current = line.substring(0, end.index);
 				}
 
-				const remaining = line.substring(end.index + "-->".length);
+				const remaining = line.substring(end.index! + "-->".length);
 				push_group();
 
 				if (remaining.length !== 0) {
@@ -519,7 +620,7 @@ function group_blocks(string, options = {}) {
 			let tags = line.matchAll(INLINE_HTML_OPENER_REGEX);
 			let tag;
 			while ((tag = tags.next().value)) {
-				if (!INLINE_HTML_SINGLE_TAG.includes(tag[1]) && is_html_tag_allowed(tag[1], options)) {
+				if (!INLINE_HTML_SINGLE_TAG.includes(tag[1]) && is_html_tag_allowed(tag[1], context)) {
 					if (inline_html_opener === "") {
 						inline_html_opener = tag[1];
 						inline_html_opener_counter = 1;
@@ -572,7 +673,7 @@ function group_blocks(string, options = {}) {
 			} else {
 				current += "\n" + line;
 			}
-		} else if (options.latex && (line.startsWith("$$") || current_block === "inline_latex")) {
+		} else if (context.latex && (line.startsWith("$$") || current_block === "inline_latex")) {
 			if (current_block !== "inline_latex") {
 				push_group("inline_latex");
 				current = line;
@@ -594,7 +695,7 @@ function group_blocks(string, options = {}) {
 			push_group("heading");
 			current = line;
 			push_group();
-		} else if (options.table_of_contents && line.toLowerCase() === "[[toc]]") {
+		} else if (context.table_of_contents && line.toLowerCase() === "[[toc]]") {
 			push_group("table_of_contents");
 			current = line;
 			push_group();
@@ -609,12 +710,12 @@ function group_blocks(string, options = {}) {
 			} else {
 				current += "\n" + line;
 			}
-		} else if (options.list && ((found = line.match(LIST_DETECTION_REGEX)) || (current_block.startsWith("list") && (line.startsWith(" ") || line === "")))) {
+		} else if (context.list && ((found = line.match(LIST_DETECTION_REGEX)) || (current_block.startsWith("list") && (line.startsWith(" ") || line === "")))) {
 			// List
 			if (!current_block.startsWith("list")) {
 				push_group();
 
-				const ordered = is_list_ordered(found);
+				const ordered = is_list_ordered(found!);
 
 				current_block = "list_" + (ordered ? "ordered" : "unordered");
 				current = line;
@@ -631,7 +732,7 @@ function group_blocks(string, options = {}) {
 				}
 				current += "\n" + line;
 			}
-		} else if (options.table && (found = line.match(TABLE_DETECTION_REGEX))) {
+		} else if (context.table && (found = line.match(TABLE_DETECTION_REGEX))) {
 			if (current_block !== "table") {
 				const next = lines[index + 1];
 				if (next && (found = next.match(TABLE_SEPARATOR_REGEX))) {
@@ -651,15 +752,15 @@ function group_blocks(string, options = {}) {
 			current += "\n" + line.trimStart();
 		} else if (line === "") {
 			push_group();
-		} else if (options.doc && (found = line.match(FOOTNOTE_REF_REGEX)) !== null) {
+		} else if (context.doc && (found = line.match(FOOTNOTE_REF_REGEX)) !== null) {
 			const name = found[1];
 			const text = found[2];
-			options.doc.add_footnote(name, parse_nodes(text, false, options));
-		} else if (options.doc && (found = line.match(REFERENCE_REGEX)) !== null) {
+			context.doc.add_footnote(name, parse_nodes(text, false, context));
+		} else if (context.doc && (found = line.match(REFERENCE_REGEX)) !== null) {
 			const name = found[1];
 			const url = found[2];
 			const tooltip = found[3];
-			options.doc.ref(name, new md.Reference(url, tooltip));
+			context.doc.ref(name, new md.Reference(url, tooltip));
 		} else {
 			do_paragraph(line);
 		}
@@ -673,13 +774,13 @@ function group_blocks(string, options = {}) {
 /**
  * Parse the specified block.
  *
- * @param block The block to parse.
- * @param options The options.
- * @return {Element} The block element.
+ * @param block the block to parse
+ * @param context the context
+ * @return the block element
  */
-function parse_block(block, options = {}) {
+function parse_block(block: BlockGroup, context: ParsingContext): md.BlockElement<any> | md.Comment {
 	if (typeof block === "string") {
-		block = group_blocks(block, options)[0]; // Really bad.
+		block = group_blocks(block, context)[0]; // Really bad.
 	}
 
 	let found;
@@ -712,14 +813,14 @@ function parse_block(block, options = {}) {
 					break;
 			}
 			nodes.shift();
-			nodes = parse_nodes(nodes.join(" "), false, options);
-			return new md.Heading(nodes, level);
+			const actual_nodes = parse_nodes(nodes.join(" "), false, context);
+			return new md.Heading(actual_nodes, level);
 		}
 		case "horizontal_rule":
 			return md.HORIZONTAL_RULE;
 		case "quote":
 			// Quotes
-			return create_quote(block, options);
+			return create_quote(block, context);
 		case "code":
 		case "indent_code_block": {
 			// Block code
@@ -734,9 +835,9 @@ function parse_block(block, options = {}) {
 		}
 		case "inline_html": {
 			// Inline HTML
-			block = purge_inline_html(block.block, options.inline_html.disallowed_tags);
-			const modified_options = merge_objects(options, {inline_html_block: true});
-			return new md.InlineHTML(parse_nodes(block, true, modified_options));
+			const purged = purge_inline_html(block.block, context.inline_html.disallowed_tags);
+			const modified_context = html.merge_objects(context, {inline_html_block: true});
+			return new md.InlineHTML(parse_nodes(purged, true, modified_context));
 		}
 		case "inline_latex": {
 			// Inline LaTeX
@@ -744,22 +845,22 @@ function parse_block(block, options = {}) {
 			lines[0] = lines[0].replace(/^\s*\$\$/, "");
 			if (lines[0] === "")
 				lines.shift();
-			return new md.InlineLatex(lines.filter(line => !line.startsWith("$$")).join("\n"), true);
+			return new md.LatexDisplay(lines.filter(line => !line.startsWith("$$")).join("\n"));
 		}
 		case "list_ordered":
 		case "list_unordered": {
 			// List
 			// This becomes a bit difficult.
-			block = block.block.trimStart(); // Bad spaces >:C
-			found = block.match(LIST_DETECTION_REGEX);
-			let ordered = is_list_ordered(found);
+			const block_str = block.block.trimStart(); // Bad spaces >:C
+			found = block_str.match(LIST_DETECTION_REGEX);
+			let ordered = is_list_ordered(found!);
 
 			const list = new md.List([], ordered);
 
 			const regex = /^ *(-|\*|\+|(?:([0-9]+)\.)) +/;
 
 			// I don't want to do that.
-			const lines = block.split("\n");
+			const lines = block_str.split("\n");
 
 			if (ordered) {
 				const result = regex.exec(lines[0]);
@@ -768,7 +869,7 @@ function parse_block(block, options = {}) {
 				}
 			}
 
-			let current = lines.shift().replace(regex, ""); // First node, so we don't need anything to identify it.
+			let current = lines.shift()!.replace(regex, ""); // First node, so we don't need anything to identify it.
 			const raw_list = []; // The goal is to make a first "raw" list with every part separated.
 			lines.forEach(line => {
 				found = line.match(LIST_DETECTION_REGEX);
@@ -790,69 +891,70 @@ function parse_block(block, options = {}) {
 			// To do so, we have an array named current which represent the last entry and the index represent the entry "level".
 			// The parent list can be found with the index - 1, if it doesn't exist just go decrease the index.
 
-			current = [];
+			let current_list: md.ListEntry[] = [];
 
-			options.list = false; // Prevent some weird things.
+			context.list = false; // Prevent some weird things.
 
 			raw_list.forEach(raw_entry => {
-				let level = raw_entry.match(/^( *)/);
-				if (!level) {
-					level = 0;
-				} else {
-					level = level[1].length / 2 >> 0;
+				const indent = raw_entry.match(/^( *)/);
+				let level: number = 0;
+
+				if (indent) {
+					level = indent[1].length / 2 >> 0;
 				}
 
-				if (level !== 0) {
-					while (!current[level - 1])
-						level--;
+				for (let i = level; level > 0; level--) {
+					if (current_list[level - 1]) {
+						break;
+					}
 				}
 
 				if (level === 0) {
 					raw_entry = raw_entry.replace(regex, "").replace(/\n */g, "\n");
-					let checked = "none";
-					if (options.checkbox) {
+					let checked: boolean | null = null;
+					if (context.checkbox) {
 						const checkbox = raw_entry.match(LIST_CHECKBOX_REGEX);
 						if (checkbox) {
 							raw_entry = raw_entry.substring(checkbox[1].length);
 							checked = checkbox[2] !== " ";
 						}
 					}
-					list.push(new md.ListEntry(parse_blocks(raw_entry, merge_objects(options, {doc: null})), [], checked));
-					current = []; // Time to rebuild.
-					current[0] = list.get_last();
+					list.push(new md.ListEntry(parse_blocks(raw_entry, html.merge_objects(context, {doc: null})), [], checked));
+					current_list = []; // Time to rebuild.
+					current_list[0] = list.get_last();
 				} else {
 					found = raw_entry.match(LIST_DETECTION_REGEX);
-					ordered = is_list_ordered(found);
+					ordered = is_list_ordered(found!);
 
-					if (current.length > level + 1) {
-						current.splice(level);
+					if (current_list.length > level + 1) {
+						current_list.splice(level);
 					}
 
-					const parent = current[level - 1];
-					if (parent.sublists.length === 0) {
-						parent.sublists.push(new md.List([], ordered));
+					const parent = current_list[level - 1];
+					if (parent.sub_lists.length === 0) {
+						parent.sub_lists.push(new md.List([], ordered));
 					} else {
-						if (parent.sublists[parent.sublists.length - 1].ordered !== ordered) {
-							parent.sublists.push(new md.List([], ordered));
+						if (parent.sub_lists[parent.sub_lists.length - 1].ordered !== ordered) {
+							parent.sub_lists.push(new md.List([], ordered));
 						}
 					}
 
-					const parent_list = parent.sublists[parent.sublists.length - 1];
+					const parent_list = parent.sub_lists[parent.sub_lists.length - 1];
 					raw_entry = raw_entry.replace(regex, "").replace(/\n */g, "\n");
-					let checked = "none";
-					if (options.checkbox) {
+					let checked: boolean | null = null;
+					if (context.checkbox) {
 						const checkbox = raw_entry.match(LIST_CHECKBOX_REGEX);
 						if (checkbox) {
 							raw_entry = raw_entry.substring(checkbox[1].length);
 							checked = checkbox[2] !== " ";
 						}
 					}
-					parent_list.push(new md.ListEntry(parse_blocks(raw_entry, merge_objects(options, {doc: null})), [], checked));
-					current[level] = parent_list.get_last();
+					parent_list.push(new md.ListEntry(parse_blocks(raw_entry, html.merge_objects(context, {doc: null})), [], checked));
+					current_list[level] = parent_list.get_last();
 				}
 			});
 
-			options.list = true; // Restore the option.
+			context.list = true; // Restore the option.
 
 			return list;
 		}
@@ -860,13 +962,13 @@ function parse_block(block, options = {}) {
 			const rows = block.block.split("\n");
 
 			if (rows.length < 2) {
-				const nodes = parse_nodes(block.block, true, options);
+				const nodes = parse_nodes(block.block, true, context);
 				return new md.Paragraph(nodes);
 			}
 
 			const table = new md.Table();
 
-			for (const index in rows) {
+			for (let index = 0; index < rows.length; index++) {
 				let raw_entries = rows[index].split("|");
 				let raw_entries_end = raw_entries.length - 1;
 				if (raw_entries[raw_entries_end] === "" || is_whitespace(raw_entries[raw_entries_end])) {
@@ -875,7 +977,7 @@ function parse_block(block, options = {}) {
 				raw_entries = raw_entries.slice(1, raw_entries_end + 1);
 
 				if (index == 1) {
-					table.alignments = raw_entries.map(entry => {
+					raw_entries.map(entry => {
 						const result = TABLE_ALIGNMENT_REGEX.exec(entry);
 						if (result) {
 							for (const align_id in md.TableAlignments) {
@@ -886,15 +988,15 @@ function parse_block(block, options = {}) {
 							}
 						}
 						return md.TableAlignments.NONE;
+					}).forEach((alignment, index) => {
+						table.set_alignment(index, alignment);
 					});
 				} else {
-					const table_row = new md.TableRow(table);
-
-					table_row.nodes = raw_entries.map(entry => {
-						return new md.TableEntry(table_row, parse_nodes(entry.trim(), false, options));
+					const row = new md.TableRow(table);
+					raw_entries.forEach(entry => {
+						row.push(parse_nodes(entry.trim(), false, context));
 					});
-
-					table.nodes[index > 1 ? index - 1 : index] = table_row;
+					table.set_row(index > 1 ? index - 1 : index, row);
 				}
 			}
 
@@ -903,34 +1005,34 @@ function parse_block(block, options = {}) {
 		case "table_of_contents":
 			return new md.TableOfContents();
 		default:
-			return new md.Paragraph(parse_nodes(block.block, true, options));
+			return new md.Paragraph(parse_nodes(block.block, true, context));
 	}
 }
 
-function parse_blocks(string, options = {}) {
-	options = merge_objects(DEFAULT_OPTIONS, options);
+function parse_blocks(string: string, context: ParsingContext): (md.BlockElement<any> | md.Comment)[] {
+	context = html.merge_objects(DEFAULT_OPTIONS, context) as ParsingContext;
 
-	const blocks = group_blocks(string, options);
+	const blocks = group_blocks(string, context);
 
 	// So we have our blocks, now we can parse the blocks individually.
 	// Identifying which block is what is kind of easy as you just have to see what is its beginning
 	// (except heading using a divider beneath it)
 
-	return blocks.map(block => parse_block(block, options));
+	return blocks.map(block => parse_block(block, context));
 }
 
-function parse_nodes(line, allow_linebreak, options = {}) {
-	options = merge_objects(DEFAULT_OPTIONS, options);
+function parse_nodes(line: string, allow_linebreak: boolean, context: ParsingContext): md.Node[] {
+	context = html.merge_objects(DEFAULT_OPTIONS, context);
 
-	const nodes = [];
+	const nodes: md.Node[] = [];
 	let index = 0;
 
 	const word = {
 		word: "",
-		add: function (text) {
+		add: function (text: string): void {
 			this.word += text;
 		},
-		push_text_if_present: function (nodes) {
+		push_text_if_present: function (nodes: md.Node[]) {
 			this.word = push_text_if_present(this.word, nodes);
 		}
 	};
@@ -939,14 +1041,14 @@ function parse_nodes(line, allow_linebreak, options = {}) {
 		const char = line[index];
 
 		let result;
-		if (char === "\\" && options.meta_control.allow_escape) {
+		if (char === "\\" && context.meta_control.allow_escape) {
 			if ((result = line.substring(index).match(ESCAPED_UNICODE))) {
 				let code = result[1];
 				if (!code) code = result[2];
 				if (!code) code = result[3];
 
-				code = parseInt(code, 16);
-				word.add(String.fromCharCode(code));
+				const int_code = parseInt(code, 16);
+				word.add(String.fromCharCode(int_code));
 
 				index += result[0].length;
 				continue;
@@ -960,21 +1062,25 @@ function parse_nodes(line, allow_linebreak, options = {}) {
 			}
 		} else if (char === "<" &&
 			((result = line.substring(index).match(INLINE_HTML_BR_REGEX))
-				|| (options.inline_html_block && (result = line.substring(index).match(INLINE_HTML_SKIP_REGEX)))
+				|| (context.inline_html_block && (result = line.substring(index).match(INLINE_HTML_SKIP_REGEX)))
 				|| (result = html.parse_comment(line.substring(index))))) {
-			if (result.comment) {
+			if (result instanceof html.Comment) {
 				word.push_text_if_present(nodes);
-				nodes.push(new md.Comment(result.comment.content));
+				nodes.push(new md.Comment(result.content));
 				index += result.length - 1;
-			} else if ((result[1] === "br" || result[2] === "br") && !options.inline_html_block) {
-				word.push_text_if_present(nodes);
-				if (allow_linebreak) {
-					nodes.push(md.LINEBREAK);
-				}
-				index += result[0].length - 1;
 			} else {
-				word.add(result[0]);
-				index += result[0].length - 1;
+				const regex_result = result as RegExpMatchArray;
+
+				if ((regex_result[1] === "br" || regex_result[2] === "br") && !context.inline_html_block) {
+					word.push_text_if_present(nodes);
+					if (allow_linebreak) {
+						nodes.push(md.LINEBREAK);
+					}
+					index += regex_result[0].length - 1;
+				} else {
+					word.add(regex_result[0]);
+					index += regex_result[0].length - 1;
+				}
 			}
 		} else if (char === "`" && (result = try_parse_inline_code(line, index))) {
 			// Inline code
@@ -982,10 +1088,10 @@ function parse_nodes(line, allow_linebreak, options = {}) {
 			nodes.push(result.el);
 			index += result.skip;
 			continue;
-		} else if (options.latex && char === "$" && (result = try_parse_tag(line, index, "$", 1))) {
+		} else if (context.latex && char === "$" && (result = try_parse_tag(line, index, "$", 1))) {
 			// Inline Latex
 			word.push_text_if_present(nodes);
-			nodes.push(new md.InlineLatex(result.tag, false));
+			nodes.push(new md.InlineLatex(result.tag));
 			index += result.skip;
 			continue;
 		} else if (char === " " && line[index + 1] === " " && line[index + 2] === "\n" && allow_linebreak) {
@@ -996,12 +1102,12 @@ function parse_nodes(line, allow_linebreak, options = {}) {
 			index += 3;
 			continue;
 		} else if (char === "\n") {
-			if (options.meta_control.newline_as_linebreaks) {
+			if (context.meta_control.newline_as_linebreaks) {
 				word.push_text_if_present(nodes);
 				nodes.push(md.LINEBREAK);
 			} else word.add(" ");
-		} else if (char === ":" && options.emoji.enabled
-			&& (result = try_parse_emoji(line, index, options))) {
+		} else if (char === ":" && context.emoji.enabled
+			&& (result = try_parse_emoji(line, index, context))) {
 			word.push_text_if_present(nodes);
 			nodes.push(result.el);
 			index += result.skip;
@@ -1011,11 +1117,11 @@ function parse_nodes(line, allow_linebreak, options = {}) {
 			word.push_text_if_present(nodes);
 
 			const alt = result.title;
-			nodes.push(new md.Image(result.url, alt, result.tooltip, result.ref_name));
+			nodes.push(new md.Image(result.url!, alt, result.tooltip, result.ref_name));
 
 			index += result.skip + 1;
 			continue;
-		} else if (char === "[" && options.footnote && (result = try_parse_footnote(line, index))) {
+		} else if (char === "[" && context.footnote && (result = try_parse_footnote(line, index))) {
 			// Footnote
 			word.push_text_if_present(nodes);
 
@@ -1023,20 +1129,20 @@ function parse_nodes(line, allow_linebreak, options = {}) {
 
 			index += result.skip;
 			continue;
-		} else if (char === "[" && options.link.standard && (result = try_parse_link(line, index))) {
+		} else if (char === "[" && context.link.standard && (result = try_parse_link(line, index))) {
 			// Link
 			word.push_text_if_present(nodes);
 
-			const title = parse_nodes(result.title, false, options);
-			nodes.push(new md.Link(result.url, title, result.tooltip, result.ref_name));
+			const title = parse_nodes(result.title, false, context);
+			nodes.push(new md.Link(result.url!, title, result.tooltip, result.ref_name));
 
 			index += result.skip;
 			continue;
-		} else if (char === "|" && options.spoiler && (result = try_parse_tag(line, index, "|", 2))) {
+		} else if (char === "|" && context.spoiler && (result = try_parse_tag(line, index, "|", 2))) {
 			// Spoiler
 			word.push_text_if_present(nodes);
 
-			nodes.push(new md.Spoiler(parse_nodes(result.tag, false, options)));
+			nodes.push(new md.Spoiler(parse_nodes(result.tag, false, context)));
 
 			index += result.skip;
 			continue;
@@ -1044,7 +1150,7 @@ function parse_nodes(line, allow_linebreak, options = {}) {
 			// Strikethrough
 			word.push_text_if_present(nodes);
 
-			nodes.push(new md.Strikethrough(parse_nodes(result.tag, true, options)));
+			nodes.push(new md.Strikethrough(parse_nodes(result.tag, true, context)));
 
 			index += result.skip;
 			continue;
@@ -1052,7 +1158,7 @@ function parse_nodes(line, allow_linebreak, options = {}) {
 			// Bold or italic
 			word.push_text_if_present(nodes);
 
-			const content = parse_nodes(result.tag, true, options);
+			const content = parse_nodes(result.tag, true, context);
 			if (result.delimiter_repeat === 2)
 				nodes.push(new md.Bold(content));
 			else
@@ -1064,9 +1170,9 @@ function parse_nodes(line, allow_linebreak, options = {}) {
 			// Underline or italic
 			word.push_text_if_present(nodes);
 
-			const content = parse_nodes(result.tag, true, options);
+			const content = parse_nodes(result.tag, true, context);
 			if (result.delimiter_repeat === 2) {
-				if (options.underline)
+				if (context.underline)
 					nodes.push(new md.Underline(content));
 				else
 					nodes.push(new md.Bold(content)); // In the true Markdown standard it's bold, but personally I prefer underline.
@@ -1075,15 +1181,15 @@ function parse_nodes(line, allow_linebreak, options = {}) {
 
 			index += result.skip;
 			continue;
-		} else if (options.highlight && char === "=" && (result = try_parse_tag(line, index, "=", 2))) {
+		} else if (context.highlight && char === "=" && (result = try_parse_tag(line, index, "=", 2))) {
 			// Highlight
 			word.push_text_if_present(nodes);
 
-			nodes.push(new md.Highlight(parse_nodes(result.tag, true, options)));
+			nodes.push(new md.Highlight(parse_nodes(result.tag, true, context)));
 
 			index += result.skip;
 			continue;
-		} else if (options.link.auto_link && (result = try_parse_url(line, index))) {
+		} else if (context.link.auto_link && (result = try_parse_url(line, index))) {
 			word.push_text_if_present(nodes);
 
 			nodes.push(new md.InlineLink(result));
@@ -1103,5 +1209,6 @@ function parse_nodes(line, allow_linebreak, options = {}) {
 	if (allow_linebreak && line.endsWith("  ")) {
 		nodes.push(md.LINEBREAK);
 	}
+
 	return nodes;
 }

@@ -1,11 +1,14 @@
-import { md, html } from "../../mod.mjs";
+import * as html from "@lambdaurora/libhtml";
+import * as md from "../../mod.ts";
 import katex from "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.mjs"; // For inline LaTeX rendering
-import "https://cdn.jsdelivr.net/npm/emoji-js@3.6.0/lib/emoji.min.js";
+import EmojiConvertor from "https://cdn.jsdelivr.net/npm/emoji-js@3.6.0/lib/emoji.min.js";
+
+declare var Prism: any;
 
 {
-	const splitter = document.getElementById("splitter");
-	const editor = document.getElementById("editor");
-	const preview = document.getElementById("preview");
+	const splitter = document.getElementById("splitter")!;
+	const editor = document.getElementById("editor")!;
+	const preview = document.getElementById("preview")!;
 
 	let editor_value = 50;
 	const preview_value = () => 100 - editor_value;
@@ -17,43 +20,43 @@ import "https://cdn.jsdelivr.net/npm/emoji-js@3.6.0/lib/emoji.min.js";
 
 	apply();
 
-	let data = null;
+	let data: null | { old_x: number; old_y: number; } = null;
 
 	splitter.addEventListener("mousedown", e => {
 		data = { old_x: e.clientX, old_y: e.clientY };
 	});
 
-	splitter.parentElement.addEventListener("mouseup", e => {
+	splitter.parentElement!.addEventListener("mouseup", e => {
 		data = null;
 	});
 
-	splitter.parentElement.addEventListener("mousemove", e => {
+	splitter.parentElement!.addEventListener("mousemove", e => {
 		if (!data) return;
 
 		const delta = { x: e.clientX - data.old_x - 8, y: e.clientY - data.old_y };
 
-		delta.x = delta.x / (editor.parentElement.scrollWidth) * 100;
+		delta.x = delta.x / (editor.parentElement!.scrollWidth) * 100;
 
 		editor_value = 50 + delta.x;
 		apply();
 	})
 }
 
-const markdown_preview = document.getElementById("markdown_preview");
+const markdown_preview = document.getElementById("markdown_preview")!;
 
 const emoji_convertor = new EmojiConvertor();
 emoji_convertor.img_set = "twitter";
 // Hi, let's use Twemoji for the demo (https://twemoji.twitter.com/).
 emoji_convertor.img_sets.twitter.path = "https://twemoji.maxcdn.com/v/latest/72x72/";
 // Fix the heart emoji.
-emoji_convertor.data["2764"] = emoji_convertor.data["2764-fe0f"];
-delete emoji_convertor.data["2764-fe0f"];
+(emoji_convertor.data as any)["2764"] = emoji_convertor.data["2764-fe0f"];
+delete (emoji_convertor.data as any)["2764-fe0f"];
 emoji_convertor.init_colons();
 
-let parser_options = {
+let parser_options: Partial<md.parser.ParserOptions> = {
 	code: {},
 	emoji: {
-		match: (emoji) => !emoji.is_custom() && emoji_convertor.map.colons[emoji.content]
+		match: (emoji) => !emoji.is_custom() && (emoji_convertor.map as any).colons[emoji.content]
 	},
 	latex: true,
 	link: {
@@ -63,7 +66,7 @@ let parser_options = {
 		newline_as_linebreaks: false
 	}
 };
-let render_options = {
+let render_options: Partial<md.DomRenderOptions> = {
 	emoji: node => {
 		if (node.has_variant()) {
 			return html.parse(emoji_convertor.replace_colons(`:${node.content}::skin-tone-${node.variant}:`));
@@ -87,12 +90,13 @@ let render_options = {
 	parent: markdown_preview
 };
 
-const textarea = document.getElementById("markdown_editor");
+const textarea = document.getElementById("markdown_editor") as HTMLTextAreaElement;
 
 class OptionCheckbox {
-	constructor(name, callback, should_load) {
-		this.name = name;
-		this.el = document.getElementById(name);
+	private el: HTMLInputElement;
+
+	constructor(public readonly name: string, callback: (option: OptionCheckbox) => void, should_load: boolean) {
+		this.el = document.getElementById(name) as HTMLInputElement;
 		this.el.addEventListener("click", () => {
 			callback(this);
 			this.save();
@@ -107,16 +111,16 @@ class OptionCheckbox {
 		}
 	}
 
-	get() {
+	public get(): boolean {
 		return this.el.checked;
 	}
 
-	set(value) {
+	public set(value: boolean): void {
 		this.el.checked = value;
 	}
 
-	save() {
-		window.localStorage.setItem("options." + this.name, this.get());
+	public save(): void {
+		window.localStorage.setItem("options." + this.name, this.get().toString());
 	}
 }
 
@@ -125,21 +129,24 @@ const checkbox_indent_as_code = new OptionCheckbox("indent_as_code", render, fal
 
 const checkbox_indent_paragraphs = new OptionCheckbox("indent_paragraphs", (option) => {
 	if (option.get()) {
-		document.getElementById("indent_paragraphs_style").innerHTML = "p { text-indent: 2em; }";
+		document.getElementById("indent_paragraphs_style")!.innerHTML = "p { text-indent: 2em; }";
 	} else {
-		document.getElementById("indent_paragraphs_style").innerHTML = "";
+		document.getElementById("indent_paragraphs_style")!.innerHTML = "";
 	}
 }, true);
 
-if (localStorage.getItem("text")) {
-	textarea.value = localStorage.getItem("text");
+{
+	const text = localStorage.getItem("text");
+	if (text) {
+		textarea.value = text;
+	}
 }
 
 textarea.addEventListener("input", render);
 
-function render() {
-	parser_options.meta_control.newline_as_linebreaks = checkbox_newline_as_linebreaks.get();
-	parser_options.code.block_from_indent = checkbox_indent_as_code.get();
+function render(): void {
+	parser_options.meta_control!.newline_as_linebreaks = checkbox_newline_as_linebreaks.get();
+	parser_options.code!.block_from_indent = checkbox_indent_as_code.get();
 
 	localStorage.setItem("text", textarea.value);
 
@@ -150,7 +157,7 @@ function render() {
 
 	markdown_preview.innerHTML = "";
 	start = new Date().getTime();
-	md.render(markdown_doc, document, render_options);
+	md.render_to_dom(markdown_doc, document, render_options);
 
 	console.log("Rendered Markdown in: " + (new Date().getTime() - start) + "ms");
 

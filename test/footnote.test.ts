@@ -29,21 +29,17 @@ Deno.test("Renderer > footnotes", () => {
 	const rendered = md.render_to_html(doc);
 
 	assertEquals(rendered.html(), /*html*/`<div>
-	<p>Hello world<sup>
-			<a id="fn:fancy-name:src" href="#fn:fancy-name">2</a>
-		</sup>
+	<p>
+		Hello world<sup><a id="fn:fancy-name:src" href="#fn:fancy-name">2</a></sup>
 	</p>
 	<hr />
 	<ol class="footnotes">
 		<li id="fn:1">Simple text
-			<a class="footnote_src_link" href="#fn:1:src">↩</a>
-		</li>
+			<a class="footnote_src_link" href="#fn:1:src">↩</a></li>
 		<li id="fn:fancy-name">Fancy name footnote.
-			<a class="footnote_src_link" href="#fn:fancy-name:src">↩</a>
-		</li>
+			<a class="footnote_src_link" href="#fn:fancy-name:src">↩</a></li>
 		<li id="fn:3">Moar text
-			<a class="footnote_src_link" href="#fn:3:src">↩</a>
-		</li>
+			<a class="footnote_src_link" href="#fn:3:src">↩</a></li>
 	</ol>
 </div>`);
 });

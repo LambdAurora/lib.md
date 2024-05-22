@@ -26,9 +26,3 @@ To use the library:
 ```js
 import { md, html } from "https://deno.land/x/libmd@v<version>/mod.mjs";
 ```
-
-Hello world[^fancy name]
-
-[^1]: Simple text
-[^fancy name]: Fancy name footnote.
-[^3]: Moar text

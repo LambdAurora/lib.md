@@ -793,9 +793,10 @@ function parse_block(block: BlockGroup, context: ParsingContext): md.BlockElemen
 		case "heading": {
 			// Heading
 			const nodes = block.block.split(" ");
+			const level = nodes[0].length;
 			nodes.shift();
 			const actual_nodes = parse_nodes(nodes.join(" "), false, context);
-			return new md.Heading(actual_nodes, Math.min(nodes[0].length, md.HeadingLevel.H6));
+			return new md.Heading(actual_nodes, Math.min(level, md.HeadingLevel.H6));
 		}
 		case "horizontal_rule":
 			return md.HORIZONTAL_RULE;

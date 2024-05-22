@@ -9,6 +9,7 @@
  */
 
 import * as html from "@lambdaurora/libhtml";
+import { Document } from "./document.ts";
 
 /**
  * Represents a Markdown node.
@@ -41,6 +42,16 @@ export abstract class Node {
 	public abstract toJSON(): object | string;
 }
 
+export interface HtmlRenderable {
+	/**
+	 * Returns this node as an HTML node.
+	 *
+	 * @param document the parent Markdown document
+	 * @returns the corresponding HTML node
+	 */
+	as_html(document: Document): html.Node;
+}
+
 /**
  * Represents a Markdown text node.
  *
@@ -55,10 +66,20 @@ export class Text extends Node {
 		super();
 	}
 
+	/**
+	 * Returns this node as plain text.
+	 *
+	 * @returns the node as plain text
+	 */
 	public override as_plain_text(): string {
 		return this.content;
 	}
 
+	/**
+	 * Returns whether this text is a linebreak.
+	 *
+	 * @returns `true` if this text is a linebreak, or `false` otherwise
+	 */
 	public is_linebreak(): boolean {
 		return this.content === "  \n";
 	}
@@ -67,6 +88,11 @@ export class Text extends Node {
 		return this.content;
 	}
 
+	/**
+	 * Returns a representation of this node suitable for JSON-serialization.
+	 *
+	 * @returns the representation of this node for JSON-serialization
+	 */
 	public override toJSON(): object | string {
 		if (this.is_linebreak()) {
 			return {type: "linebreak"};
@@ -95,7 +121,7 @@ export const LINEBREAK: Linebreak = new Linebreak();
  * @version 2.0.0
  * @since 1.1.0
  */
-export class Comment extends Node {
+export class Comment extends Node implements HtmlRenderable {
 	private readonly actual: html.Comment;
 
 	constructor(content: string) {
@@ -103,6 +129,9 @@ export class Comment extends Node {
 		this.actual = new html.Comment(content);
 	}
 
+	/**
+	 * the content of this comment
+	 */
 	public get content(): string {
 		return this.actual.content
 	}
@@ -111,10 +140,20 @@ export class Comment extends Node {
 		this.actual.content = content;
 	}
 
+	/**
+	 * Returns this node as plain text.
+	 *
+	 * @returns the node as plain text
+	 */
 	public override as_plain_text(): string {
 		return "";
 	}
 
+	/**
+	 * Returns this node as an HTML node.
+	 *
+	 * @returns the corresponding HTML node
+	 */
 	public as_html(): html.Comment {
 		return this.actual.clone();
 	}
@@ -123,15 +162,31 @@ export class Comment extends Node {
 		return this.actual.html();
 	}
 
+	/**
+	 * Returns a representation of this node suitable for JSON-serialization.
+	 *
+	 * @returns the representation of this node for JSON-serialization
+	 */
 	public override toJSON(): object {
 		return {type: "comment", content: this.toString()};
 	}
 }
 
+/**
+ * Represents a link reference present in this document.
+ */
 export class Reference {
+	/**
+	 * The URL associated with this reference.
+	 */
+	public url: string;
+	/**
+	 * The tooltip associated with this reference.
+	 */
 	public tooltip: string | null;
 
-	constructor(public url: string, tooltip: string | null | undefined) {
+	constructor(url: string, tooltip: string | null | undefined) {
+		this.url = url;
 		this.tooltip = tooltip ?? null;
 	}
 
@@ -149,6 +204,9 @@ export class Reference {
 	}
 }
 
+/**
+ * Represents the type of input that is valid for a large number of Elements.
+ */
 export type NodeInput = string | Node | readonly (Node | string)[];
 
 export abstract class Element<Child extends Node> extends Node {
@@ -205,6 +263,9 @@ export abstract class Element<Child extends Node> extends Node {
 	}
 }
 
+/**
+ * Represents a block element that can be found at the root of a Markdown document.
+ */
 export abstract class BlockElement<Child extends Node> extends Element<Child> {
 	protected constructor(nodes: Child[], allow_linebreaks: boolean = true) {
 		super(nodes, allow_linebreaks);
@@ -239,8 +300,8 @@ export function map_nodes(nodes: NodeInput): Node[] {
  * Purges the nodes from linebreaks
  *
  * @param nodes the nodes to purge
+ * @returns the purged nodes
  */
-
 function purge_linebreaks<N extends Node>(nodes: N[]): N[] {
 	return nodes.filter(node => !(node instanceof Text && node.is_linebreak()));
 }

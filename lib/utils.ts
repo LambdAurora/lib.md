@@ -10,7 +10,13 @@
 
 const WHITESPACE_CHARACTER_REGEX = /^\s+$/;
 
+/**
+ * Represents the new line code point.
+ */
 export const NEW_LINE_CODE_POINT: number = "\n".codePointAt(0)!;
+/**
+ * Represents the underscore code point.
+ */
 export const UNDERSCORE_CODE_POINT: number = "_".codePointAt(0)!;
 
 /*
@@ -47,7 +53,7 @@ export function clone_regexp(input: RegExp): RegExp {
 /**
  * Represents a suggestion of the HTML tags to purge in a user-editable document.
  *
- * @version 1.9.0
+ * @version 2.0.0
  * @since 1.9.0
  */
 export const HTML_TAGS_TO_PURGE_SUGGESTION: readonly string[] = Object.freeze([
@@ -75,7 +81,7 @@ export function purge_inline_html(html: string, disallowed_tags: readonly string
  *
  * @param text the text to convert as a valid anchor name
  * @returns the anchor name
- * @version 1.9.6
+ * @version 2.0.0
  * @since 1.9.6
  */
 export function to_anchor_name(text: string): string {

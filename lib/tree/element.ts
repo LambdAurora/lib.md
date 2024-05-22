@@ -8,11 +8,17 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-import { Element, map_nodes, Node, NodeInput, Reference, Text } from "./base.ts";
-import { Document } from "./document.ts";
-import { to_anchor_name } from "../../utils.ts";
 import * as html from "@lambdaurora/libhtml";
+import { Element, HtmlRenderable, map_nodes, Node, NodeInput, Reference, Text } from "./base.ts";
+import { Document } from "./document.ts";
+import { to_anchor_name } from "../utils.ts";
 
+/**
+ * Represents an italic element.
+ *
+ * @version 2.0.0
+ * @since 1.0.0
+ */
 export class Italic extends Element<Node> {
 	/**
 	 * @param content the inner nodes of the element
@@ -30,11 +36,22 @@ export class Italic extends Element<Node> {
 		}
 	}
 
+	/**
+	 * Returns a representation of this node suitable for JSON-serialization.
+	 *
+	 * @returns the representation of this node for JSON-serialization
+	 */
 	public override toJSON(): object {
 		return {type: "italic", nodes: this.nodes};
 	}
 }
 
+/**
+ * Represents a bold element.
+ *
+ * @version 2.0.0
+ * @since 1.0.0
+ */
 export class Bold extends Element<Node> {
 	/**
 	 * @param content the inner nodes of the element
@@ -47,6 +64,11 @@ export class Bold extends Element<Node> {
 		return `**${super.toString()}**`;
 	}
 
+	/**
+	 * Returns a representation of this node suitable for JSON-serialization.
+	 *
+	 * @returns the representation of this node for JSON-serialization
+	 */
 	public override toJSON(): object {
 		return {type: "bold", nodes: this.nodes};
 	}
@@ -72,11 +94,22 @@ export class Underline extends Element<Node> {
 		return `__${super.toString()}__`;
 	}
 
+	/**
+	 * Returns a representation of this node suitable for JSON-serialization.
+	 *
+	 * @returns the representation of this node for JSON-serialization
+	 */
 	public override toJSON(): object {
 		return {type: "underline", nodes: this.nodes};
 	}
 }
 
+/**
+ * Represents a struckthrough element.
+ *
+ * @version 2.0.0
+ * @since 1.0.0
+ */
 export class Strikethrough extends Element<Node> {
 	/**
 	 * @param content the inner nodes of the element
@@ -89,6 +122,11 @@ export class Strikethrough extends Element<Node> {
 		return `~~${super.toString()}~~`;
 	}
 
+	/**
+	 * Returns a representation of this node suitable for JSON-serialization.
+	 *
+	 * @returns the representation of this node for JSON-serialization
+	 */
 	public override toJSON(): object {
 		return {type: "strikethrough", nodes: this.nodes};
 	}
@@ -114,6 +152,11 @@ export class Highlight extends Element<Node> {
 		return `==${super.toString()}==`;
 	}
 
+	/**
+	 * Returns a representation of this node suitable for JSON-serialization.
+	 *
+	 * @returns the representation of this node for JSON-serialization
+	 */
 	public override toJSON(): object {
 		return {type: "highlight", nodes: this.nodes};
 	}
@@ -141,6 +184,11 @@ export class Spoiler extends Element<Node> {
 		return `||${super.toString()}||`;
 	}
 
+	/**
+	 * Returns a representation of this node suitable for JSON-serialization.
+	 *
+	 * @returns the representation of this node for JSON-serialization
+	 */
 	public override toJSON(): object {
 		return {type: "spoiler", nodes: this.nodes};
 	}
@@ -194,6 +242,11 @@ export class Link extends Element<Node> {
 		return `[${title}](${this.ref.toString()})`;
 	}
 
+	/**
+	 * Returns a representation of this node suitable for JSON-serialization.
+	 *
+	 * @returns the representation of this node for JSON-serialization
+	 */
 	public override toJSON(): object {
 		return {type: "link", url: this.ref.url, title: this.nodes, tooltip: this.ref.tooltip, ref_name: this.ref_name};
 	}
@@ -217,11 +270,22 @@ export class Image extends Link {
 		return "!" + super.toString();
 	}
 
+	/**
+	 * Returns a representation of this node suitable for JSON-serialization.
+	 *
+	 * @returns the representation of this node for JSON-serialization
+	 */
 	public override toJSON(): object {
 		return {type: "image", url: this.ref.url, alt: this.nodes, tooltip: this.ref.tooltip, ref_name: this.ref_name};
 	}
 }
 
+/**
+ * Represents an inlined LaTeX expression.
+ *
+ * @version 2.0.0
+ * @since 2.0.0
+ */
 export class InlineLatex extends Element<Node> {
 	constructor(public raw: string) {
 		super([]);
@@ -242,6 +306,11 @@ export class InlineLatex extends Element<Node> {
 		return `$${this.raw}$`;
 	}
 
+	/**
+	 * Returns a representation of this node suitable for JSON-serialization.
+	 *
+	 * @returns the representation of this node for JSON-serialization
+	 */
 	public override toJSON(): object {
 		return {type: "inline_latex", raw: this.raw};
 	}
@@ -253,7 +322,7 @@ export class InlineLatex extends Element<Node> {
  * @version 2.0.0
  * @since 1.10.0
  */
-export class FootNoteReference extends Element<Node> {
+export class FootNoteReference extends Element<Node> implements HtmlRenderable {
 	constructor(public name: string) {
 		super();
 	}
@@ -272,18 +341,23 @@ export class FootNoteReference extends Element<Node> {
 		return `[^${this.name}]`;
 	}
 
+	/**
+	 * Returns a representation of this node suitable for JSON-serialization.
+	 *
+	 * @returns the representation of this node for JSON-serialization
+	 */
 	public override toJSON(): object {
 		return {type: "footnote", name: this.name};
 	}
 
 	/**
-	 * Converts this footnote reference as HTML.
+	 * Returns this footnote reference as an HTML node.
 	 *
-	 * @param doc the Markdown document
-	 * @returns the HTML node
+	 * @param document the parent Markdown document
+	 * @returns the corresponding HTML node
 	 */
-	public as_html(doc: Document): html.Element | html.Text {
-		const index = doc.index_of_footnote(this.name);
+	public as_html(document: Document): html.Element | html.Text {
+		const index = document.index_of_footnote(this.name);
 		if (index !== -1) {
 			const anchor_id = to_anchor_name(this.name.toLowerCase());
 

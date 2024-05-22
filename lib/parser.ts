@@ -1,3 +1,4 @@
+// deno-lint-ignore-file no-explicit-any
 /*
  * Copyright 2024 LambdAurora <email@lambdaurora.dev>
  *
@@ -8,9 +9,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-import * as md from "./tree/index.ts";
 import * as html from "@lambdaurora/libhtml";
-import { HTML_TAGS_TO_PURGE_SUGGESTION, is_whitespace, purge_inline_html } from "../utils.ts";
+import * as md from "./tree/index.ts";
+import { HTML_TAGS_TO_PURGE_SUGGESTION, is_whitespace, purge_inline_html } from "./utils.ts";
 
 /**
  * Represents the parser options related to code elements.
@@ -325,7 +326,7 @@ function try_parse_url(input: string, start: number) {
  * @param start the tag start index
  * @param delimiter the tag delimiter (1 character)
  * @param delimiter_repeat how many times the tag delimiter character is repeated to form the delimiter
- * @return an object if the tag has been parsed successfully, else `null`
+ * @returns an object if the tag has been parsed successfully, else `null`
  */
 function try_parse_tag(text: string, start: number, delimiter: string, delimiter_repeat: number) {
 	const rest = text.substring(start);
@@ -383,11 +384,12 @@ function try_parse_tag(text: string, start: number, delimiter: string, delimiter
 
 /**
  * Tries to parse a single tag by parsing with different delimiters through decreasing the delimiter repeat until a match is found.
+ *
  * @param text the text to parse
  * @param start the tag start index
- * @param {string} delimiter the tag delimiter (1 character)
- * @param {number} delimiter_repeat how many times the tag delimiter character is repeated to form the delimiter for the first iteration
- * @return an object if the tag has been parsed successfully, or `null` otherwise
+ * @param delimiter the tag delimiter (1 character)
+ * @param delimiter_repeat how many times the tag delimiter character is repeated to form the delimiter for the first iteration
+ * @returns an object if the tag has been parsed successfully, or `null` otherwise
  */
 function try_parse_possible_tags(text: string, start: number, delimiter: string, delimiter_repeat: number) {
 	for (let i = delimiter_repeat; i > 0; i--) {
@@ -399,7 +401,7 @@ function try_parse_possible_tags(text: string, start: number, delimiter: string,
 	return null;
 }
 
-function is_html_tag_allowed(tag: string, options: ParserOptions) {
+function is_html_tag_allowed(tag: string, options: ParserOptions): boolean {
 	return !options.inline_html.disallowed_tags?.includes(tag);
 }
 
@@ -493,7 +495,7 @@ function create_quote(block: BlockGroup, context: ParsingContext): md.BlockQuote
  * Parses a Markdown document from the given string.
  *
  * @param string the Markdown source
- * @param options the parser options
+ * @param options the parsing options
  * @returns the parsed Markdown document
  */
 export function parse(string: string, options: Partial<ParserOptions> = {}): md.Document {
@@ -790,31 +792,10 @@ function parse_block(block: BlockGroup, context: ParsingContext): md.BlockElemen
 			return new md.Comment(block.block.replace(/^\s*<!-?-?/, ""));
 		case "heading": {
 			// Heading
-			let nodes = block.block.split(" ");
-			let level;
-			switch (nodes[0].length) {
-				case 1:
-					level = md.HeadingLevel.H1;
-					break;
-				case 2:
-					level = md.HeadingLevel.H2;
-					break;
-				case 3:
-					level = md.HeadingLevel.H3;
-					break;
-				case 4:
-					level = md.HeadingLevel.H4;
-					break;
-				case 5:
-					level = md.HeadingLevel.H5;
-					break;
-				default:
-					level = md.HeadingLevel.H6;
-					break;
-			}
+			const nodes = block.block.split(" ");
 			nodes.shift();
 			const actual_nodes = parse_nodes(nodes.join(" "), false, context);
-			return new md.Heading(actual_nodes, level);
+			return new md.Heading(actual_nodes, Math.min(nodes[0].length, md.HeadingLevel.H6));
 		}
 		case "horizontal_rule":
 			return md.HORIZONTAL_RULE;
@@ -903,7 +884,7 @@ function parse_block(block: BlockGroup, context: ParsingContext): md.BlockElemen
 					level = indent[1].length / 2 >> 0;
 				}
 
-				for (let i = level; level > 0; level--) {
+				for (; level > 0; level--) {
 					if (current_list[level - 1]) {
 						break;
 					}

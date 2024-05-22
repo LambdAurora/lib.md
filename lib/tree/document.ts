@@ -11,10 +11,10 @@
 import { BlockElement, Comment, Element, Node, Reference, Text } from "./base.ts";
 import { Paragraph } from "./block.ts";
 import { Link } from "./element.ts";
-import { to_anchor_name } from "../../utils.ts";
+import { to_anchor_name } from "../utils.ts";
 
 /**
- * The entry of a reference in a Markdown document.
+ * Represents the entry of a reference inside a Markdown document.
  */
 export interface ReferenceEntry {
 	/**
@@ -27,13 +27,31 @@ export interface ReferenceEntry {
 	ref: Reference;
 }
 
+/**
+ * Represents the entry of a footnote inside a Markdown document.
+ */
 export interface FootnoteEntry {
+	/**
+	 * The identifier of this footnote.
+	 */
 	id: string;
+	/**
+	 * The name of this footnote.
+	 */
 	name: string;
+	/**
+	 * The anchor string of this footnote.
+	 */
 	anchor: string;
+	/**
+	 * The nodes of this footnote.
+	 */
 	nodes: Node[];
 }
 
+/**
+ * Represents a Markdown document.
+ */
 export class Document {
 	private _references: ReferenceEntry[];
 	private _footnotes: FootnoteEntry[];
@@ -164,7 +182,12 @@ export class Document {
 				+ "\n" : "");
 	}
 
-	toJSON(): object {
+	/**
+	 * Returns a representation of this document suitable for JSON-serialization.
+	 *
+	 * @returns the representation of this document for JSON-serialization
+	 */
+	public toJSON(): object {
 		return {
 			blocks: this.blocks.map(block => block.toJSON()),
 			references: this._references,

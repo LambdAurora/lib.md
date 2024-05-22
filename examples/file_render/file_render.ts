@@ -1,5 +1,5 @@
-import * as md from "../../mod.ts";
 import * as html from "@lambdaurora/libhtml";
+import * as md from "../../mod.ts";
 import katex from "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.mjs"; // For inline LaTeX rendering
 
 if (Deno.args.length !== 1) {

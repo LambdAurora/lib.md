@@ -8,8 +8,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-import { Text } from "./base.ts";
 import * as html from "@lambdaurora/libhtml";
+import { HtmlRenderable, Text } from "./base.ts";
 
 /**
  * Represents skin tones of emojis.
@@ -40,6 +40,11 @@ export class Emoji extends Text {
 		this.custom = custom;
 	}
 
+	/**
+	 * Returns whether this node is a linebreak.
+	 *
+	 * @returns `false` as emoji nodes cannot be linebreaks
+	 */
 	public override is_linebreak(): false {
 		return false;
 	}
@@ -74,12 +79,17 @@ export class Emoji extends Text {
 			return `:${super.toString()}:`;
 	}
 
+	/**
+	 * Returns a representation of this node suitable for JSON-serialization.
+	 *
+	 * @returns the representation of this node for JSON-serialization
+	 */
 	public override toJSON(): object {
 		return {type: "emoji", content: this.content, variant: this.variant, custom: this.custom};
 	}
 }
 
-export class InlineCode extends Text {
+export class InlineCode extends Text implements HtmlRenderable {
 	/**
 	 * @param content the text content
 	 */
@@ -87,6 +97,11 @@ export class InlineCode extends Text {
 		super(content);
 	}
 
+	/**
+	 * Returns whether this node is a linebreak.
+	 *
+	 * @returns `false` as inline code nodes cannot be linebreaks
+	 */
 	public override is_linebreak(): false {
 		return false;
 	}
@@ -100,10 +115,20 @@ export class InlineCode extends Text {
 		}
 	}
 
+	/**
+	 * Returns a representation of this node suitable for JSON-serialization.
+	 *
+	 * @returns the representation of this node for JSON-serialization
+	 */
 	public override toJSON(): object {
 		return {type: "inline_code", content: this.content};
 	}
 
+	/**
+	 * Returns this node as an HTML node.
+	 *
+	 * @returns the corresponding HTML node
+	 */
 	public as_html(): html.Element {
 		return html.create_element("code").with_child(new html.Text(this.content));
 	}
@@ -115,7 +140,7 @@ export class InlineCode extends Text {
  * @version 2.0.0
  * @since 1.2.0
  */
-export class InlineLink extends Text {
+export class InlineLink extends Text implements HtmlRenderable {
 	/**
 	 * @param link the URL
 	 */
@@ -123,14 +148,29 @@ export class InlineLink extends Text {
 		super(link);
 	}
 
+	/**
+	 * Returns whether this node is a linebreak.
+	 *
+	 * @returns `false` as inline link nodes cannot be linebreaks
+	 */
 	public override is_linebreak(): false {
 		return false;
 	}
 
+	/**
+	 * Returns a representation of this node suitable for JSON-serialization.
+	 *
+	 * @returns the representation of this node for JSON-serialization
+	 */
 	public override toJSON(): object {
 		return {type: "inline_link", content: this.content};
 	}
 
+	/**
+	 * Returns this node as an HTML node.
+	 *
+	 * @returns the corresponding HTML node
+	 */
 	public as_html(): html.Element {
 		return html.create_element("a").with_attr("href", this.content)
 			.with_child(this.content);

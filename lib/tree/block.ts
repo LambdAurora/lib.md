@@ -8,21 +8,30 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-import { BlockElement, Element, map_nodes, Node, NodeInput, Text } from "./base.ts";
+import * as html from "@lambdaurora/libhtml";
+import { BlockElement, Element, HtmlRenderable, map_nodes, Node, NodeInput, Text } from "./base.ts";
 import { Link } from "./element.ts";
 import { Document } from "./document.ts";
-import { to_anchor_name } from "../../utils.ts";
-import * as html from "@lambdaurora/libhtml";
+import { to_anchor_name } from "../utils.ts";
 
+/**
+ * Represents the levels of heading.
+ */
 export enum HeadingLevel {
-	H1 = "h1",
-	H2 = "h2",
-	H3 = "h3",
-	H4 = "h4",
-	H5 = "h5",
-	H6 = "h6"
+	H1 = 1,
+	H2 = 2,
+	H3 = 3,
+	H4 = 4,
+	H5 = 5,
+	H6 = 6
 }
 
+/**
+ * Represents a heading.
+ *
+ * @version 2.0.0
+ * @since 1.0.0
+ */
 export class Heading extends BlockElement<Node> {
 	/**
 	 * @param nodes the inner nodes of the element
@@ -30,6 +39,10 @@ export class Heading extends BlockElement<Node> {
 	 */
 	constructor(nodes: NodeInput, public level: HeadingLevel) {
 		super(map_nodes(nodes), false);
+
+		if (level < HeadingLevel.H1 || level > HeadingLevel.H6) {
+			throw new Error(`lib.md :: Heading#constructor(nodes, level): invalid heading "${this.level}".`);
+		}
 	}
 
 	/**
@@ -43,40 +56,49 @@ export class Heading extends BlockElement<Node> {
 
 	public override toString(): string {
 		const content = this.nodes.map(node => node.toString()).join(" ");
-		switch (this.level) {
-			case HeadingLevel.H1:
-				return "# " + content;
-			case HeadingLevel.H2:
-				return "## " + content;
-			case HeadingLevel.H3:
-				return "### " + content;
-			case HeadingLevel.H4:
-				return "#### " + content;
-			case HeadingLevel.H5:
-				return "##### " + content;
-			case HeadingLevel.H6:
-				return "###### " + content;
-			default:
-				throw new Error(`lib.md ;; Heading#toString(): invalid heading "${this.level}".`);
-		}
+
+		return `${"#".repeat(this.level)} ${content}`;
 	}
 
+	/**
+	 * Returns a representation of this node suitable for JSON-serialization.
+	 *
+	 * @returns the representation of this node for JSON-serialization
+	 */
 	public override toJSON(): object {
 		return {type: "heading", level: this.level, nodes: this.nodes};
 	}
 }
 
+/**
+ * Represents a paragraph.
+ *
+ * @version 2.0.0
+ * @since 1.0.0
+ */
 export class Paragraph extends BlockElement<Node> {
 	constructor(nodes: NodeInput) {
 		super(map_nodes(nodes), true);
 	}
 
+	/**
+	 * Returns a representation of this node suitable for JSON-serialization.
+	 *
+	 * @returns the representation of this node for JSON-serialization
+	 */
 	public override toJSON(): object {
 		return {type: "paragraph", nodes: this.nodes};
 	}
 }
 
+/**
+ * Represents a block of code.
+ */
 export class BlockCode extends BlockElement<Node> {
+	/**
+	 * @param code the code present in this block of code
+	 * @param language the language of the code
+	 */
 	constructor(public code: string, public language: string | undefined) {
 		super([], true);
 	}
@@ -105,11 +127,22 @@ export class BlockCode extends BlockElement<Node> {
 		return "```" + (this.has_language() ? this.language + "\n" : "\n") + this.code + "\n```";
 	}
 
+	/**
+	 * Returns a representation of this node suitable for JSON-serialization.
+	 *
+	 * @returns the representation of this node for JSON-serialization
+	 */
 	public override toJSON(): object {
 		return {type: "block_code", code: this.code, language: this.language};
 	}
 }
 
+/**
+ * Represents the display of a LaTeX expression.
+ *
+ * @version 2.0.0
+ * @since 2.0.0
+ */
 export class LatexDisplay extends BlockElement<Node> {
 	constructor(public raw: string) {
 		super([], true);
@@ -130,6 +163,11 @@ export class LatexDisplay extends BlockElement<Node> {
 		return `$$\n${this.raw}\n$$`;
 	}
 
+	/**
+	 * Returns a representation of this node suitable for JSON-serialization.
+	 *
+	 * @returns the representation of this node for JSON-serialization
+	 */
 	public override toJSON(): object {
 		return {type: "latex_display", raw: this.raw};
 	}
@@ -139,12 +177,15 @@ export class LatexDisplay extends BlockElement<Node> {
  * Returns the nodes a string with linebreaks.
  *
  * @param nodes the nodes
- * @return the nodes as a string
+ * @returns the nodes as a string
  */
 function to_string_with_linebreaks(nodes: Node[]): string {
 	return nodes.map((node, index) => node.toString() + ((index + 1 < nodes.length && !(node instanceof Text && node.is_linebreak())) ? " " : "")).join("");
 }
 
+/**
+ * Represents a quotation.
+ */
 export class BlockQuote extends BlockElement<Node> {
 	constructor(nodes: NodeInput) {
 		super(map_nodes(nodes));
@@ -154,12 +195,17 @@ export class BlockQuote extends BlockElement<Node> {
 		return to_string_with_linebreaks(this.nodes).split("\n").map(quote => `> ${quote}`).join("\n");
 	}
 
+	/**
+	 * Returns a representation of this node suitable for JSON-serialization.
+	 *
+	 * @returns the representation of this node for JSON-serialization
+	 */
 	public override toJSON(): object {
 		return {type: "quote", nodes: this.nodes};
 	}
 }
 
-class HorizontalRule extends BlockElement<Node> {
+class HorizontalRule extends BlockElement<Node> implements HtmlRenderable {
 	constructor() {
 		super([]);
 	}
@@ -178,10 +224,20 @@ class HorizontalRule extends BlockElement<Node> {
 		return "---";
 	}
 
+	/**
+	 * Returns a representation of this node suitable for JSON-serialization.
+	 *
+	 * @returns the representation of this node for JSON-serialization
+	 */
 	public override toJSON(): object {
 		return {type: "horizontal_rule"};
 	}
 
+	/**
+	 * Returns this node as an HTML node.
+	 *
+	 * @returns the corresponding HTML node
+	 */
 	public as_html(): html.Element {
 		return html.create_element("hr");
 	}
@@ -254,11 +310,19 @@ export class List extends BlockElement<ListEntry> {
 		return entries;
 	}
 
+	/**
+	 * Returns a representation of this node suitable for JSON-serialization.
+	 *
+	 * @returns the representation of this node for JSON-serialization
+	 */
 	public override toJSON(): object {
 		return {type: "list", entries: this.nodes, ordered: this.ordered, ordered_start: this.ordered_start};
 	}
 }
 
+/**
+ * Represents an entry to a list.
+ */
 export class ListEntry extends Element<Node> {
 	public sub_lists: List[];
 
@@ -287,30 +351,58 @@ export class ListEntry extends Element<Node> {
 		return content;
 	}
 
+	/**
+	 * Returns a representation of this node suitable for JSON-serialization.
+	 *
+	 * @returns the representation of this node for JSON-serialization
+	 */
 	public override toJSON(): object {
 		return {type: "list_entry", nodes: this.nodes, sub_lists: this.sub_lists, checked: this.checked};
 	}
 }
 
+/**
+ * Represents a block of inlined HTML.
+ */
 export class InlineHTML extends BlockElement<Node> {
 	constructor(nodes: NodeInput) {
 		super(map_nodes(nodes), true);
 	}
 
+	/**
+	 * Returns a representation of this node suitable for JSON-serialization.
+	 *
+	 * @returns the representation of this node for JSON-serialization
+	 */
 	public override toJSON(): object {
 		return {type: "inline_html", content: this.nodes};
 	}
 }
 
+/**
+ * Represents a type of alignment for table columns.
+ */
 export class TableAlignment {
+	/**
+	 * @param name the name of this alignment
+	 * @param left the character on the left-most side of the column to annotate the alignment type
+	 * @param right the character on the right-most side of the column to annotate the alignment type
+	 * @param style_table_data the function used to style the table column during rendering
+	 */
 	constructor(
 		public readonly name: string,
-		readonly left: string,
-		readonly right: string,
+		public readonly left: string,
+		public readonly right: string,
 		public readonly style_table_data: (elem: html.Element) => void
 	) {
 	}
 
+	/**
+	 * Returns a prettified string representation of this alignment given the length of the associated column.
+	 *
+	 * @param column_length the length of the column
+	 * @returns the prettified string
+	 */
 	public to_pretty_string(column_length: number): string {
 		if (column_length < 5)
 			column_length = 5;
@@ -323,6 +415,9 @@ export class TableAlignment {
 	}
 }
 
+/**
+ * Represents the alignments available for table columns.
+ */
 export const TableAlignments: Readonly<{ [key: string]: TableAlignment }> = Object.freeze(function () {
 	const center = new TableAlignment("center", ":", ":", element => element.style("text-align", "center"));
 	return {
@@ -370,6 +465,12 @@ export class Table extends BlockElement<TableRow> {
 		}));
 	}
 
+	/**
+	 * Sets the specified row of this table to the given value.
+	 *
+	 * @param index the row index
+	 * @param row the row to set
+	 */
 	public set_row(index: number, row: TableRow): void {
 		if (row.table !== this) {
 			const cloned = row.clone();
@@ -380,6 +481,13 @@ export class Table extends BlockElement<TableRow> {
 		}
 	}
 
+	/**
+	 * Pushes a new column to this table.
+	 *
+	 * @param head the head of the column
+	 * @param data the body of the column, each array entry corresponds to a row
+	 * @param alignment the alignment of this column
+	 */
 	public push_column(head: NodeInput, data: (Node | string)[] = [], alignment: TableAlignment = TableAlignments.NONE): void {
 		if (head)
 			this.get_head().push(head);
@@ -415,11 +523,21 @@ export class Table extends BlockElement<TableRow> {
 		this.alignments[column] = alignment;
 	}
 
+	/**
+	 * Gets the row that is considered to be the head of this table.
+	 *
+	 * @returns the head row
+	 */
 	public get_head(): TableRow {
 		return this.nodes[0] as TableRow;
 	}
 
-	public get_body(): TableRow[] {
+	/**
+	 * Gets the rows that are considered to be the body of this table.
+	 *
+	 * @returns the body rows
+	 */
+	public get_body(): readonly TableRow[] {
 		return this.nodes.filter((_, index) => index !== 0) as TableRow[];
 	}
 
@@ -433,6 +551,11 @@ export class Table extends BlockElement<TableRow> {
 		return "| " + head_columns.join(" | ") + " |\n" + alignments + "\n" + this.get_body().map(row => row.toString()).join("\n");
 	}
 
+	/**
+	 * Returns a representation of this node suitable for JSON-serialization.
+	 *
+	 * @returns the representation of this node for JSON-serialization
+	 */
 	public override toJSON(): object {
 		return {type: "table", rows: this.nodes.map(row => row.toJSON()), alignments: this.alignments.map(alignment => alignment.name)};
 	}
@@ -476,10 +599,20 @@ export class TableRow extends BlockElement<TableEntry> {
 		return "| " + this.nodes.map(node => node.toString()).join(" | ") + " |";
 	}
 
+	/**
+	 * Returns a representation of this node suitable for JSON-serialization.
+	 *
+	 * @returns the representation of this node for JSON-serialization
+	 */
 	public override toJSON(): object {
 		return {type: "table_row", columns: this.nodes.map(node => node.toJSON())};
 	}
 
+	/**
+	 * Clones this node.
+	 *
+	 * @returns the cloned node
+	 */
 	public clone(): TableRow {
 		const row = new TableRow(this.table);
 		row.push(...this.nodes);
@@ -497,14 +630,27 @@ export class TableEntry extends BlockElement<Node> {
 		this.row = row;
 	}
 
+	/**
+	 * The parent table.
+	 */
 	public get table(): Table {
 		return this.row.table;
 	}
 
+	/**
+	 * Returns a representation of this node suitable for JSON-serialization.
+	 *
+	 * @returns the representation of this node for JSON-serialization
+	 */
 	public override toJSON(): object {
 		return {type: "table_entry", nodes: this.nodes.map(node => node.toJSON())};
 	}
 
+	/**
+	 * Clones this node.
+	 *
+	 * @returns the cloned node
+	 */
 	public clone(): TableEntry {
 		return new TableEntry(this.row, this.nodes);
 	}
@@ -555,7 +701,7 @@ export class TableOfContents extends BlockElement<Node> {
 		}
 
 		headings.forEach(heading => {
-			let level = parseInt(heading.level[1]);
+			let level: number = heading.level;
 			if (!allow_h1)
 				level--;
 
@@ -591,6 +737,11 @@ export class TableOfContents extends BlockElement<Node> {
 		return "[[ToC]]";
 	}
 
+	/**
+	 * Returns a representation of this node suitable for JSON-serialization.
+	 *
+	 * @returns the representation of this node for JSON-serialization
+	 */
 	public override toJSON(): object {
 		return {type: "table_of_contents"};
 	}

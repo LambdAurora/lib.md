@@ -1,5 +1,4 @@
-import * as md from "../lib/md/tree/index.ts";
-import {parse} from "../lib/md/parser.ts";
+import * as md from "../mod.ts";
 
 const link = new md.Link("https://random.com", ["another ", "random", " link"], "oh no", "reference_test");
 
@@ -13,7 +12,7 @@ const document = new md.Document()
 console.log(JSON.stringify(document, null, 2));
 console.log(document.toString());
 
-const parsed_document = parse("# lib.md\n\
+const parsed_document = md.parser.parse("# lib.md\n\
 \n\
 A Markdown parser and *hewwo **renderer*** library. [![random fox](https://foxrudor.de/)](https://foxrudor.de/ \"Visit the website!\") oh no  \n\
 foo bar\n\

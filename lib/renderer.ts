@@ -1,106 +1,269 @@
 /*
- * Copyright 2024 LambdAurora <email@lambdaurora.dev>
- *
- * This file is part of lib.md.
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/.
- */
+* Copyright 2024 LambdAurora <email@lambdaurora.dev>
+*
+* This file is part of lib.md.
+*
+* This Source Code Form is subject to the terms of the Mozilla Public
+* License, v. 2.0. If a copy of the MPL was not distributed with this
+* file, You can obtain one at https://mozilla.org/MPL/2.0/.
+*/
+// deno-lint-ignore-file no-explicit-any
 
-import * as md from "./tree/index.ts";
 import * as html from "@lambdaurora/libhtml";
-import { HTML_TAGS_TO_PURGE_SUGGESTION } from "../utils.ts";
+import * as md from "./tree/index.ts";
+import type { HtmlRenderable } from "./tree/base.ts";
+import { HTML_TAGS_TO_PURGE_SUGGESTION } from "./utils.ts";
 
 const DEFAULT_STRIKETHROUGH_CLASS_NAME = "strikethrough";
 const DEFAULT_UNDERLINE_CLASS_NAME = "underline";
 
+/**
+ * Represents options that allows to set a custom class name.
+ */
 export interface ClassNameOptions {
+	/**
+	 * The custom class name.
+	 */
 	class_name?: string;
 }
 
-export interface BlockCodeRenderOptions {
-	class_name: string;
+/**
+ * Represents the options related to code blocks rendering.
+ */
+export interface BlockCodeRenderOptions extends ClassNameOptions {
+	/**
+	 * The highlighter function which highlights the given code and outputs to the parent HTML element.
+	 *
+	 * @param code the code of the code block
+	 * @param language the language of the code
+	 * @param parent the parent HTML element
+	 */
 	highlighter: ((code: string, language: string, parent: html.Element) => void) | null;
 }
 
+/**
+ * Represents the options related to checkbox rendering.
+ */
 export interface CheckBoxRenderOptions {
+	/**
+	 * `true` if checkboxes are enabled, or `false` otherwise
+	 */
 	enable: boolean;
+	/**
+	 * `true` if all rendered checkboxes should be disabled, or `false` otherwise
+	 */
 	disabled_property: boolean;
 }
 
+/**
+ * Represents the options related to inline code rendering.
+ */
 export interface CodeRenderOptions {
+	/**
+	 * Processes the given inline code.
+	 *
+	 * @param node the Markdown node
+	 * @returns the resulting HTML node
+	 */
 	process: (node: md.InlineCode) => html.Node;
 }
 
+/**
+ * Represents the options related to footnote rendering.
+ */
 export interface FootnoteRenderOptions {
+	/**
+	 * The class to use on the footnotes section HTML element.
+	 */
 	footnotes_class: string;
+	/**
+	 * The class to use on the source link.
+	 */
 	footnote_src_link_class: string;
+	/**
+	 * Renders the footnotes section to HTML nodes.
+	 *
+	 * @param footnotes the footnote entries
+	 * @param nodes_render the Markdown node renderer function
+	 * @returns the resulting HTML nodes
+	 */
 	render: ((footnotes: readonly md.FootnoteEntry[], nodes_render: (nodes: md.Node[], parent: html.Element) => void) => html.Node[]) | null;
 }
 
+/**
+ * Represents the options related to highlight elements rendering.
+ */
 export interface HighlightRenderOptions {
+	/**
+	 * `true` if highlight elements are enabled, `false` otherwise
+	 */
 	enable: boolean;
 }
 
+/**
+ * Represents the options related to inline HTML rendering.
+ */
 export interface InlineHtmlRenderOptions {
+	/**
+	 * `true` if inline HTML rendering is enabled, `false` otherwise
+	 */
 	enable: boolean;
+	/**
+	 * List of HTML tags that are not allowed and will be escaped out.
+	 */
 	disallowed_tags: readonly string[];
 }
 
+/**
+ * Represents the options related to LaTeX expressions rendering.
+ */
 export interface LatexRenderOptions {
+	/**
+	 * Katex instance to provide to use it for LaTeX expression rendering.
+	 */
 	katex?: {
 		renderToString: (expression: string, options: Partial<{ displayMode: boolean, output: string }>) => string;
 	};
+	/**
+	 * Renders the given LaTeX expression node to HTML if possible.
+	 *
+	 * @param node the LaTeX expression node to render
+	 * @returns the HTML element or a string if rendering is not possible
+	 */
 	render: ((node: md.InlineLatex | md.LatexDisplay) => (html.Element | string)) | null;
+	/**
+	 * The classes to use if LaTeX rendering failed.
+	 */
 	error_classes: readonly string[];
 }
 
+/**
+ * Represents the options related to spoiler rendering options.
+ */
 export interface SpoilerRenderOptions {
+	/**
+	 * `true` if spoiler node rendering is enabled, or `false` otherwise
+	 */
 	enable: boolean;
+	/**
+	 * The class name to use for spoilering.
+	 */
 	class_name: string;
+	/**
+	 * The class name to use on image spoilers.
+	 */
 	image_class_name: string;
+	/**
+	 * The class name to use to mark the spoilers as hidden.
+	 */
 	hidden_class_name: string;
 }
 
+/**
+ * Represents the options related to table rendering.
+ */
 export interface TableRenderOptions {
 	process: (element: html.Element) => void;
 }
 
+/**
+ * Represents the options related to underlined elements rendering.
+ */
 export interface UnderlineRenderOptions extends ClassNameOptions {
 	enable: boolean;
 }
 
 interface BaseRenderOptions {
+	/**
+	 * Options related to code blocks.
+	 */
 	block_code: Partial<BlockCodeRenderOptions>;
-	checkbox: CheckBoxRenderOptions;
-	code: CodeRenderOptions;
+	/**
+	 * Options related to checkboxes.
+	 */
+	checkbox: Partial<CheckBoxRenderOptions>;
+	/**
+	 * Options related to inline code.
+	 */
+	code: Partial<CodeRenderOptions>;
+	/**
+	 * The emoji mapper.
+	 *
+	 * @param node the emoji node
+	 * @returns the resulting HTML node
+	 */
 	emoji: ((node: md.Emoji) => html.Node) | null;
+	/**
+	 * Options related to footnotes.
+	 */
 	footnote: Partial<FootnoteRenderOptions>;
-	highlight: HighlightRenderOptions;
+	/**
+	 * Options related to highlight elements.
+	 */
+	highlight: Partial<HighlightRenderOptions>;
+	/**
+	 * Options related to images.
+	 */
 	image: ClassNameOptions;
-	inline_html: InlineHtmlRenderOptions | boolean;
+	/**
+	 * Options related to inline HTML rendering.
+	 *
+	 * Can be a boolean for which `true` means the inline HTML rendering is enabled, or `false` otherwise.
+	 */
+	inline_html: Partial<InlineHtmlRenderOptions> | boolean;
+	/**
+	 * Options related to LaTeX expressions rendering.
+	 */
 	latex: Partial<LatexRenderOptions>;
+	/**
+	 * Options related to spoiler elements rendering.
+	 */
 	spoiler: Partial<SpoilerRenderOptions>;
-	table: TableRenderOptions;
+	/**
+	 * Options related to table rendering.
+	 */
+	table: Partial<TableRenderOptions>;
+	/**
+	 * Options related to struckthrough elements rendering.
+	 */
 	strikethrough?: ClassNameOptions;
-	underline?: UnderlineRenderOptions;
+	/**
+	 * Options related to underlined elements rendering.
+	 */
+	underline?: Partial<UnderlineRenderOptions>;
 }
 
+/**
+ * Represents the standard rendering options.
+ */
 export interface RenderOptions extends BaseRenderOptions {
+	/**
+	 * The parent element to which to render to, may be `null`.
+	 */
 	parent?: html.Element | null;
 }
 
+/**
+ * Represents the DOM-specific rendering options.
+ */
 export interface DomRenderOptions extends BaseRenderOptions {
+	/**
+	 * The parent element to which to render to, may be `null`.
+	 */
 	parent?: HTMLElement | null;
 }
 
 interface RenderContext extends RenderOptions {
 	block_code: BlockCodeRenderOptions;
+	checkbox: CheckBoxRenderOptions;
+	code: CodeRenderOptions;
 	footnote: FootnoteRenderOptions;
+	highlight: HighlightRenderOptions;
 	inline_html: InlineHtmlRenderOptions;
 	latex: LatexRenderOptions;
 	spoiler: SpoilerRenderOptions;
+	table: TableRenderOptions;
+	underline: UnderlineRenderOptions;
 	parent: html.Element;
 	paragraph_as_text: boolean;
 	should_escape: boolean;
@@ -378,16 +541,16 @@ function render_inline(markdown: md.Document, nodes: readonly md.Node[], context
 			return render_latex(node, context);
 		} else if (context.footnote && node instanceof md.FootNoteReference) {
 			return node.as_html(markdown);
-		} else if ((node as any)["as_html"]) {
-			return (node as any).as_html(markdown);
+		} else if ("as_html" in node) {
+			return (node as HtmlRenderable).as_html(markdown);
 		}
-	}).filter(node => node !== null && node !== undefined);
+	}).filter(node => node !== null && node !== undefined) as html.Node[];
 }
 
 function render_blocks(markdown: md.Document, blocks: readonly md.Node[], parent: html.Element, context: RenderContext): void {
 	blocks.forEach(block => {
 		if (block instanceof md.Heading) {
-			const heading = html.create_element(block.level)
+			const heading = html.create_element(`h${block.level}`)
 				.with_attr("id", block.get_id());
 
 			render_inline(markdown, block.children, context, false).forEach(node => heading.append_child(node));
@@ -498,8 +661,8 @@ function render_blocks(markdown: md.Document, blocks: readonly md.Node[], parent
 			parent.append_child(table);
 		} else if (block instanceof md.TableOfContents) {
 			parent.append_child(render_list(markdown, block.as_list(markdown), context));
-		} else if ((block as any)["as_html"]) {
-			parent.append_child((block as any).as_html());
+		} else if ("as_html" in block) {
+			parent.append_child((block as HtmlRenderable).as_html(markdown));
 		} else {
 			render_inline(markdown, [block], context);
 		}
@@ -570,7 +733,7 @@ function render_table_row(markdown: md.Document, row: md.TableRow, head: boolean
  * Renders the Markdown document as HTML.
  *
  * @param markdown the Markdown document
- * @param options
+ * @param options the rendering options
  * @return the rendered document as an HTML element
  */
 export function render_to_html(markdown: md.Document, options: Partial<RenderOptions> = {}): html.Element {
@@ -615,11 +778,12 @@ export function render_to_html(markdown: md.Document, options: Partial<RenderOpt
 }
 
 /**
- * Renders the Markdown document into an HTML DOM node.
+ * Renders the Markdown document into an HTML DOM element.
  *
  * @param markdown the Markdown document
  * @param html_doc the DOM document
- * @param options
+ * @param options the rendering options
+ * @returns the HTML DOM element to which the document has been rendered to
  */
 export function render_to_dom(markdown: md.Document, html_doc: Document, options: Partial<DomRenderOptions> = {}): HTMLElement {
 	let doc_div;

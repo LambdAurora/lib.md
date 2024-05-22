@@ -1,13 +1,7 @@
 import * as esbuild from "https://deno.land/x/esbuild@v0.21.3/mod.js";
-import { BUILD_DIR, ENTRYPOINT, SOURCES_DIR, build_bundle } from "./base.ts";
+import { BUILD_DIR, ENTRYPOINT, SOURCES_DIR, build_bundle, clear_dir } from "./base.ts";
 
-try {
-	await Deno.remove(BUILD_DIR, {recursive: true});
-} catch (e) {
-	if (!(e instanceof Deno.errors.NotFound)) {
-		throw e;
-	}
-}
+await clear_dir(BUILD_DIR);
 
 const files: string[] = [];
 

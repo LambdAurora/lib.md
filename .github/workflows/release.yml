@@ -1,0 +1,42 @@
+name: "Release"
+
+on:
+  workflow_dispatch: # Manual trigger
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write # The OIDC ID token is used for authentication with JSR.
+
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4
+      - name: "Setup Deno"
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+      - name: "Check"
+        run: deno task check
+      - name: "Build"
+        run: deno task build
+      - name: "Publish"
+        run: deno publish
+      - name: "Upload artifacts"
+        uses: actions/upload-artifact@v4
+        with:
+          name: Artifacts
+          path: |
+            README.md
+            CHANGELOG.md
+            LICENSE
+            deno.json
+            deno.lock
+            mod.ts
+            lib/
+            dist/

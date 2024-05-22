@@ -4,6 +4,7 @@
 	"exports": "./mod.ts",
 	"tasks": {
 		"build": "deno run --allow-read --allow-write --allow-net --allow-env=HOME,ESBUILD_BINARY_PATH,ESBUILD_WORKER_THREADS,XDG_CACHE_HOME,NPM_CONFIG_REGISTRY,DENO_REGISTRY_URL --allow-run build_logic/build.ts",
+		"deploy": "deno run --allow-read --allow-write --allow-net --allow-env=HOME,ESBUILD_BINARY_PATH,ESBUILD_WORKER_THREADS,XDG_CACHE_HOME,NPM_CONFIG_REGISTRY,DENO_REGISTRY_URL --allow-run build_logic/deploy.ts",
 		"serve:examples": "deno run --allow-read --allow-write --allow-net --allow-env=HOME,ESBUILD_BINARY_PATH,ESBUILD_WORKER_THREADS,XDG_CACHE_HOME,NPM_CONFIG_REGISTRY,DENO_REGISTRY_URL --allow-run build_logic/serve.ts",
 		"check": "deno lint && deno check mod.ts",
 		"test": "deno test --allow-read=test/"
@@ -39,6 +40,22 @@
 	},
 	"test": {
 		"include": [
+			"./test/"
+		]
+	},
+	"publish": {
+		"include": [
+			"README.md",
+			"CHANGELOG.md",
+			"LICENSE",
+			"deno.json",
+			"deno.lock",
+			"mod.ts",
+			"lib/**",
+			"dist/",
+			"dist/lib/"
+		],
+		"exclude": [
 			"./test/"
 		]
 	},

@@ -3,7 +3,7 @@
   "packages": {
     "specifiers": {
       "jsr:@lambdaurora/lambdawebserver@^3.0.0": "jsr:@lambdaurora/lambdawebserver@3.0.0",
-      "jsr:@lambdaurora/libhtml@^1.2.1": "jsr:@lambdaurora/libhtml@1.2.1",
+      "jsr:@lambdaurora/libhtml@^1.2.3": "jsr:@lambdaurora/libhtml@1.2.3",
       "jsr:@luca/esbuild-deno-loader@^0.10.3": "jsr:@luca/esbuild-deno-loader@0.10.3",
       "jsr:@oak/commons@0.10": "jsr:@oak/commons@0.10.1",
       "jsr:@oak/oak@^16.0.0": "jsr:@oak/oak@16.0.0",
@@ -52,8 +52,8 @@
           "jsr:@std/path@^0.225.1"
         ]
       },
-      "@lambdaurora/libhtml@1.2.1": {
-        "integrity": "b2317e44caa5cb6d5f5d311c38f07d68bdabc8f34192abc0a9e2b500442566d7"
+      "@lambdaurora/libhtml@1.2.3": {
+        "integrity": "3016a55bcbaba217cd3f57961599b4de4a1445c291756803f68bb607024ad812"
       },
       "@luca/esbuild-deno-loader@0.10.3": {
         "integrity": "32fc93f7e7f78060234fd5929a740668aab1c742b808c6048b57f9aaea514921",

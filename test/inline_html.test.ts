@@ -28,13 +28,13 @@ Deno.test("Renderer > md.Comment (inline)", () => {
 	test_inline_render({});
 	test_inline_render({
 		inline_html: {
-			enable: false
-		}
+			enable: false,
+		},
 	});
 });
 
 Deno.test("Parser > md.InlineHtml (simple HTML tree)", () => {
-	const text = /*html*/`<div text-align="center">\nHello world!\n</div>`;
+	const text = /*html*/ `<div text-align="center">\nHello world!\n</div>`;
 	const doc = md.parser.parse(text);
 
 	assertEquals(doc.blocks.length, 1);
@@ -65,7 +65,7 @@ Deno.test("Parser > md.InlineHtml (simple HTML tree with comment)", () => {
 	assertEquals(block.children[1].content, "What do I ask now?");
 
 	assertInstanceOf(block.children[2], md.Text);
-	assertEquals(block.children[2].content, /*html*/`\n\tHow are you all?\n</div>`);
+	assertEquals(block.children[2].content, /*html*/ `\n\tHow are you all?\n</div>`);
 });
 
 Deno.test("Parser > md.InlineHtml (simple sanitization)", () => {
@@ -78,7 +78,7 @@ Deno.test("Parser > md.InlineHtml (simple sanitization)", () => {
 	assertEquals(block.children.length, 1);
 
 	assertInstanceOf(block.children[0], md.Text);
-	assertEquals(block.children[0].content, text)
+	assertEquals(block.children[0].content, text);
 });
 
 Deno.test("Parser > md.InlineHtml (in HTML tree sanitization)", () => {
@@ -95,9 +95,12 @@ Deno.test("Parser > md.InlineHtml (in HTML tree sanitization)", () => {
 	assertEquals(block.children.length, 3);
 
 	assertInstanceOf(block.children[0], md.Text);
-	assertEquals(block.children[0].content, /*html*/`<div>
+	assertEquals(
+		block.children[0].content,
+		/*html*/ `<div>
 	Hello world!
-	&lt;title&gt;Hello world!&lt;/title&gt;\n\t`);
+	&lt;title&gt;Hello world!&lt;/title&gt;\n\t`,
+	);
 
 	assertInstanceOf(block.children[1], md.Comment);
 	assertEquals(block.children[1].content, "Yet another comment.");

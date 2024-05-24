@@ -361,13 +361,6 @@ export class ListEntry extends Element<Node> {
 	}
 }
 
-export class CommentBlock extends BlockElement<Comment> {
-	public toJSON(): string | object {
-		return this.children[0].toJSON();
-	}
-
-}
-
 /**
  * Represents a block of inlined HTML.
  */

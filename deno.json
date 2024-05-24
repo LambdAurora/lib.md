@@ -1,6 +1,6 @@
 {
 	"name": "@lambdaurora/libmd",
-	"version": "2.1.0",
+	"version": "2.1.1",
 	"exports": "./mod.ts",
 	"tasks": {
 		"build": "deno run --allow-read --allow-write --allow-net --allow-env=HOME,ESBUILD_BINARY_PATH,ESBUILD_WORKER_THREADS,XDG_CACHE_HOME,NPM_CONFIG_REGISTRY,DENO_REGISTRY_URL --allow-run build_logic/build.ts",

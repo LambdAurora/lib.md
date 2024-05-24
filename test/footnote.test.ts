@@ -34,12 +34,18 @@ Deno.test("Renderer > footnotes", () => {
 	</p>
 	<hr />
 	<ol class="footnotes">
-		<li id="fn:1">Simple text
-			<a class="footnote_src_link" href="#fn:1:src">↩</a></li>
-		<li id="fn:fancy-name">Fancy name footnote.
-			<a class="footnote_src_link" href="#fn:fancy-name:src">↩</a></li>
-		<li id="fn:3">Moar text
-			<a class="footnote_src_link" href="#fn:3:src">↩</a></li>
+		<li id="fn:1">
+			Simple text
+			<a class="footnote_src_link" href="#fn:1:src">↩</a>
+		</li>
+		<li id="fn:fancy-name">
+			Fancy name footnote.
+			<a class="footnote_src_link" href="#fn:fancy-name:src">↩</a>
+		</li>
+		<li id="fn:3">
+			Moar text
+			<a class="footnote_src_link" href="#fn:3:src">↩</a>
+		</li>
 	</ol>
 </div>`);
 });

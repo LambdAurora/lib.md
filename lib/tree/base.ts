@@ -196,7 +196,11 @@ export class Reference {
 	 * @return `true` if this reference has a tooltip, or `false` otherwise.
 	 */
 	public has_tooltip(): boolean {
-		return this.tooltip !== undefined && this.tooltip !== "";
+		if (this.tooltip) {
+			return true;
+		} else {
+			return false;
+		}
 	}
 
 	public toString(): string {

@@ -74,3 +74,8 @@
 - Fixed inline HTML block element name from `InlineHTML` to `InlineHtml`.
 - Fixed comments being badly inserted inside documents.
 - Updated lib.html.
+
+### 2.1.1
+
+- Fixed null tooltip handling.
+- Updated lib.html.

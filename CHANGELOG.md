@@ -67,3 +67,10 @@
 - `HeadingLevel` is now an enum with number values.
 - Renamed `render` to `render_to_dom`.
 - Improved documentation.
+
+## 2.1.0
+
+- Severely improved HTML parsing inside of Markdown.
+- Fixed inline HTML block element name from `InlineHTML` to `InlineHtml`.
+- Fixed comments being badly inserted inside documents.
+- Updated lib.html.

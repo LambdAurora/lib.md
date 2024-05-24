@@ -41,5 +41,5 @@ import * as md from "@lambdaurora/libmd";
 Import the library using [esm.sh](https://esm.sh):
 
 ```javascript
-import * as md from "https://esm.sh/jsr/@lambdaurora/libmd@2.0.0";
+import * as md from "https://esm.sh/jsr/@lambdaurora/libmd@2.1.0";
 ```

@@ -11,7 +11,7 @@
 
 import * as html from "@lambdaurora/libhtml";
 import * as md from "./tree/index.ts";
-import { HTML_TAGS_TO_PURGE_SUGGESTION, is_whitespace, purge_inline_html } from "./utils.ts";
+import { HTML_TAGS_TO_PURGE_SUGGESTION, is_whitespace } from "./utils.ts";
 
 /**
  * Represents the parser options related to code elements.
@@ -150,14 +150,8 @@ const TABLE_ALIGNMENT_REGEX = /^[ \t]*([:\-])-*([:\-])[ \t]*$/;
 
 const ESCAPED_UNICODE = /^\\u([\dA-Fa-f]{4})|x([\dA-Fa-f]{2})|U([\dA-Fa-f]{8})/;
 
-const COMMENT_START_REGEX = /^\s*<!--/;
-const COMMENT_END_REGEX = /-->/;
-const INLINE_HTML_DETECTION_REGEX = /^\s*<(\/)?([A-z]+).*>/i;
-const INLINE_HTML_OPENER_REGEX = /<([A-z]+).*?>/gi;
-const INLINE_HTML_CLOSER_REGEX = /<\/([A-z]+)>/gi;
 const INLINE_HTML_SKIP_REGEX = /^<(\/)?([A-z]+).*?>/;
 const INLINE_HTML_BR_REGEX = /^<(br)(?: ?\/)?>/;
-const INLINE_HTML_SINGLE_TAG = Object.values(html.Tag).filter(tag => tag.self_closing).map(tag => tag.name);
 
 const INLINE_CODE_REGEX = /^```((?:.|\n)+?)```|`((?:.|\n)+?)`/;
 const EMOJI_REGEX = /^:(~)?([A-z\d\-_]+)(?:~([A-z\d\-_]+))?:/;
@@ -447,7 +441,7 @@ function push_text_if_present(text: string, nodes: md.Node[]): string {
 	if (text && text !== "") {
 		if (text.endsWith("\n"))
 			text = text.trimEnd();
-		nodes.push(new md.Text(text.replace(/&nbsp;/g, "\xa0")));
+		nodes.push(new md.Text(smart_decode_html(text)));
 	}
 	return "";
 }
@@ -514,263 +508,372 @@ interface BlockGroup {
 	block: string;
 }
 
+/**
+ * Represents a helper to group the block elements of a Markdown document together.
+ */
+class BlockGrouper {
+	private _text: string;
+	/**
+	 * The lines of the Markdown document.
+	 */
+	public lines: string[];
+	private _line_text_index: number = 0;
+	/**
+	 * The current line index.
+	 */
+	public index: number = 0;
+
+	public blocks: BlockGroup[] = [];
+	public current_block = "none";
+	public current: string | null = "";
+
+	constructor(text: string) {
+		this._text = text;
+		this.lines = text.split("\n");
+	}
+
+	/**
+	 * The text of the document.
+	 */
+	public get text(): string {
+		return this._text;
+	}
+
+	/**
+	 * The current line.
+	 */
+	public get line(): string {
+		return this.lines[this.index];
+	}
+
+	public get remaining_text(): string {
+		return this.text.substring(this.line_text_index);
+	}
+
+	/**
+	 * The text index of the current line.
+	 */
+	public get line_text_index(): number {
+		return this._line_text_index;
+	}
+
+	/**
+	 * Moves forward to the next line.
+	 */
+	public next(): void {
+		this._line_text_index += this.lines[this.index].length + 1;
+		this.index++;
+	}
+
+	public restart_line(split_index: number): void {
+		// We need to split the remaining text into its own line.
+		const remaining = this.line.substring(split_index);
+
+		this.lines = [
+			...this.lines.slice(0, this.index),
+			this.line.substring(0, split_index),
+			remaining,
+			...this.lines.slice(this.index + 1)
+		];
+
+		const text_split_index = this.line_text_index + split_index;
+		this._text = this._text.substring(0, text_split_index) + "\n" + this._text.substring(text_split_index);
+	}
+
+	/**
+	 * Returns the next line.
+	 *
+	 * @returns the next line
+	 */
+	public peek_next(): string | undefined {
+		return this.lines[this.index + 1];
+	}
+
+	/**
+	 * Returns whether there's more lines to parse.
+	 *
+	 * @returns `true` if there's more lines, or `false` otherwise
+	 */
+	public has_next(): boolean {
+		return this.index < this.lines.length;
+	}
+
+	public is_last(): boolean {
+		return this.index === this.lines.length - 1;
+	}
+
+	public push(block:  BlockGroup): void {
+		this.blocks.push(block);
+	}
+
+	public push_group(new_current_block: string = "none"): void {
+		if (this.current) {
+			this.blocks.push({ block: this.current, type: this.current_block });
+			this.current = null;
+		}
+		this.current_block = new_current_block;
+	}
+
+	public push_simple_group(new_current_block: string): void {
+		this.push_group(new_current_block);
+		this.append();
+		this.push_group();
+	}
+
+	public push_if_not_group(new_current_block: string): void {
+		if (this.current_block !== new_current_block) {
+			this.push_group(new_current_block);
+		}
+	}
+
+	public begin(new_current_block: string, text?: string): void {
+		this.current_block = new_current_block;
+		this.append(text);
+	}
+
+	public append(text?: string): void {
+		if (text === undefined) {
+			this.append(this.line);
+		} else if (this.current) {
+			this.current += "\n" + text;
+		} else {
+			this.current = text;
+		}
+	}
+
+	public append_paragraph(text?: string): void {
+		this.push_if_not_group("paragraph");
+		this.append(text);
+	}
+
+	public attempt_parse<R>(callback: () => boolean): boolean {
+		return callback();
+	}
+}
+
 function group_blocks(string: string, context: ParsingContext): BlockGroup[] {
 	context = html.merge_objects(DEFAULT_OPTIONS, context);
 
 	// The goal is to group lines to block elements.
-	const lines = string.split("\n");
-	const blocks = {
-		content: [] as BlockGroup[],
-		push: function (block: BlockGroup) {
-			this.content.push(block);
-		}
-	};
-
-	let current_block = "none";
-	let current: string | null = "";
+	const ctx = new BlockGrouper(string);
 
 	let found;
 
-	let inline_html_opener = "";
-	let inline_html_opener_counter = 0;
-
-	function push_group(new_current_block = "none") {
-		if (current) {
-			blocks.push({block: current, type: current_block});
-			current = null;
-		}
-		current_block = new_current_block;
-		inline_html_opener = "";
-		inline_html_opener_counter = 0;
-	}
-
-	function do_paragraph(line: string): void {
-		if (current_block !== "paragraph") {
-			push_group("paragraph");
-			current = line;
-		} else {
-			current += "\n" + line;
-		}
-	}
-
-	for (let index = 0; index < lines.length; index++) {
-		let line = lines[index];
-
-		if (context.code.block_from_indent && (found = line.match(CODE_BLOCK_INDENT_DETECTION_REGEX))
-			&& !current_block.startsWith("list") && current_block !== "code") {
-			if (current_block !== "indent_code_block") {
-				push_group("indent_code_block");
-				current = line.substring(found[0].length);
+	for (; ctx.has_next(); ctx.next()) {
+		if (context.code.block_from_indent && (found = ctx.line.match(CODE_BLOCK_INDENT_DETECTION_REGEX))
+			&& !ctx.current_block.startsWith("list") && ctx.current_block !== "code") {
+			if (ctx.current_block !== "indent_code_block") {
+				ctx.push_group("indent_code_block");
+				ctx.current = ctx.line.substring(found[0].length);
 				continue;
 			}
 
-			current += "\n" + line.substring(found[0].length);
-		} else if ((line.startsWith("```") && index !== lines.length - 1) || current_block === "code") {
-			if (current_block !== "code") {
-				push_group("code");
-				current = line;
+			ctx.append(ctx.line.substring(found[0].length));
+		} else if ((ctx.line.startsWith("```") && !ctx.is_last()) || ctx.current_block === "code") {
+			if (ctx.current_block !== "code") {
+				ctx.push_group("code");
+				ctx.append();
 				continue;
-			} else if (!line.startsWith("```")) {
-				current += "\n" + line;
+			} else if (!ctx.line.startsWith("```")) {
+				ctx.append();
 			}
 
-			if (line.startsWith("```") && current_block === "code") {
-				push_group();
+			if (ctx.line.startsWith("```") && ctx.current_block === "code") {
+				ctx.push_group();
 
-				if (line.length > 3) {
-					current_block = "paragraph";
-					current = line.substring(3);
+				if (ctx.line.length > 3) {
+					ctx.current_block = "paragraph";
+					ctx.current = ctx.line.substring(3);
 				}
 			}
-		} else if ((found = line.match(COMMENT_START_REGEX)) || current_block === "comment") {
-			const end = line.match(COMMENT_END_REGEX);
+		} else if (ctx.attempt_parse(() => {
+			// Attempt to parse an HTML comment.
+			const remaining_text = ctx.remaining_text;
+			const spaces = html.get_leading_spaces(remaining_text);
 
-			let current_group_comment = true;
-			if (current_block !== "comment" && current_block !== "inline_html") {
-				if (current)
-					blocks.push({block: current, type: current_block});
-				current_block = "comment";
-				current = line.substring(found![0].length);
-				current_group_comment = false;
-			}
+			// We ignore any leading spaces.
+			const result = html.parse_comment(remaining_text.substring(spaces));
 
-			if (end) {
-				if (!found) {
-					current += "\n" + line.substring(0, end.index);
-				} else {
-					current = line.substring(0, end.index);
+			if (result) {
+				// We figure out the actual content.
+				const actual_comment_text = remaining_text.substring(0, spaces + result.length);
+				// The lines affected by the comment.
+				const lines = actual_comment_text.split("\n");
+				// The line where the comment ends.
+				const destination_line_index = ctx.index + lines.length - 1;
+				// The remaining text at the end of the line.
+				let line_remain = ctx.lines[destination_line_index].substring(lines[lines.length - 1].length);
+
+				if (is_whitespace(line_remain)) {
+					// The remaining is insignificant.
+					line_remain = "";
 				}
 
-				const remaining = line.substring(end.index! + "-->".length);
-				push_group();
+				// We move forward in the text traversal.
+				for (let i = ctx.index; i < destination_line_index; i++) {
+					ctx.next();
+				}
+				// Now we are as if we were on the last line of the comment.
 
-				if (remaining.length !== 0) {
-					// Restart the parsing.
-					lines[index] = remaining;
-					index--;
-					continue;
+				if (line_remain) {
+					// If the remaining is significant, then let's allow for it to be parsed.
+					ctx.restart_line(lines[lines.length - 1].length);
 				}
 
-				current_group_comment = false;
-			}
-
-			// Comment
-			if (current_group_comment) {
-				current += "\n" + line;
-			}
-		} else if ((found = line.match(INLINE_HTML_DETECTION_REGEX)) || current_block === "inline_html") {
-			let tags = line.matchAll(INLINE_HTML_OPENER_REGEX);
-			let tag;
-			while ((tag = tags.next().value)) {
-				if (!INLINE_HTML_SINGLE_TAG.includes(tag[1]) && is_html_tag_allowed(tag[1], context)) {
-					if (inline_html_opener === "") {
-						inline_html_opener = tag[1];
-						inline_html_opener_counter = 1;
-					} else if (inline_html_opener === tag[1]) {
-						inline_html_opener_counter++;
-					}
+				if (ctx.current_block !== "paragraph") {
+					ctx.push_if_not_group("inline_html");
 				}
+				ctx.append(actual_comment_text.substring(spaces));
+
+				return true;
 			}
 
-			let found_end = null;
-			tags = line.matchAll(INLINE_HTML_CLOSER_REGEX);
-			while ((tag = tags.next().value)) {
-				if (tag[1] === inline_html_opener) {
-					inline_html_opener_counter--;
-					if (inline_html_opener_counter <= 0) {
-						const end_index = tag.index + tag[0].length;
+			return false;
+		})) {
+			continue;
+		} else if ((found = ctx.attempt_parse(() => {
+			const remaining_text = ctx.remaining_text;
+			const spaces = html.get_leading_spaces(remaining_text);
 
-						if (inline_html_opener_counter === 0) {
-							const to_eat = line.substring(0, end_index);
-							current = current ? `${current}\n${to_eat}` : to_eat;
-						}
-						push_group();
+			const result = html.parse_element(remaining_text.substring(spaces));
 
-						found_end = {
-							remaining: line.substring(end_index)
-						};
-					}
-				}
-			}
+			if (result) {
+				result.length += spaces;
 
-			if (found_end) {
-				if (!found_end.remaining.match(/^\s*$/)) {
-					lines[index] = found_end.remaining;
-					index--;
+				if (!is_html_tag_allowed(result.element.tag.name, context)) {
+					return false;
 				}
 
+				// We figure out the actual HTML text.
+				const actual_html_text = remaining_text.substring(0, spaces + result.length);
+				// The lines affected by the HTML element.
+				const lines = actual_html_text.split("\n");
+				// The line where the HTML element ends.
+				const destination_line_index = ctx.index + lines.length - 1;
+				// The remaining text at the end of the line.
+				let line_remain = ctx.lines[destination_line_index].substring(lines[lines.length - 1].length);
+
+				if (is_whitespace(line_remain)) {
+					// The remaining is insignificant.
+					line_remain = "";
+				}
+
+				// We move forward in the text traversal.
+				for (let i = ctx.index; i < destination_line_index; i++) {
+					ctx.next();
+				}
+				// Now we are as if we were on the last line of the HTML element.
+
+				if (line_remain) {
+					// If the remaining is significant, then let's allow for it to be parsed.
+					ctx.restart_line(lines[lines.length - 1].length);
+				}
+
+				ctx.push_if_not_group("inline_html");
+
+				sanitize_inline_html(result.element, context);
+
+				ctx.append(result.element.html(new html.StringifyStyle("")));
+
+				return true;
+			}
+
+			return false;
+		}))) {
+			continue;
+		} else if (context.latex && (ctx.line.startsWith("$$") || ctx.current_block === "inline_latex")) {
+			if (ctx.current_block !== "inline_latex") {
+				ctx.push_group("inline_latex");
+				ctx.append();
 				continue;
+			} else if (!ctx.line.startsWith("$$")) {
+				ctx.append();
 			}
 
-			if (line === "" && inline_html_opener === "") {
-				push_group();
-				continue;
-			}
-			// Inline HTML
-			if (current_block !== "inline_html") {
-				if (current)
-					blocks.push({block: current, type: current_block})
-				current_block = "inline_html";
-				current = line;
-			} else {
-				current += "\n" + line;
-			}
-		} else if (context.latex && (line.startsWith("$$") || current_block === "inline_latex")) {
-			if (current_block !== "inline_latex") {
-				push_group("inline_latex");
-				current = line;
-				continue;
-			} else if (!line.startsWith("$$")) {
-				current += "\n" + line;
-			}
+			if (ctx.line.startsWith("$$") && ctx.current_block === "inline_latex") {
+				ctx.push_group();
 
-			if (line.startsWith("$$") && current_block === "inline_latex") {
-				push_group();
-
-				if (line.length > 3) {
-					current_block = "paragraph";
-					current = line.substring(3);
+				if (ctx.line.length > 3) {
+					ctx.begin("paragraph", ctx.line.substring(3));
 				}
 			}
-		} else if (line.startsWith("#")) {
+		} else if (ctx.line.startsWith("#")) {
 			// Push the heading as a block.
-			push_group("heading");
-			current = line;
-			push_group();
-		} else if (context.table_of_contents && line.toLowerCase() === "[[toc]]") {
-			push_group("table_of_contents");
-			current = line;
-			push_group();
-		} else if (line.match(HORIZONTAL_RULE_REGEX)) {
-			push_group("horizontal_rule");
-			current = line;
-			push_group();
-		} else if (match_quote_block(line, current_block)) {
-			if (current_block !== "quote") {
-				push_group("quote");
-				current = line;
-			} else {
-				current += "\n" + line;
-			}
-		} else if (context.list && ((found = line.match(LIST_DETECTION_REGEX)) || (current_block.startsWith("list") && (line.startsWith(" ") || line === "")))) {
+			ctx.push_simple_group("heading");
+		} else if (context.table_of_contents && ctx.line.toLowerCase() === "[[toc]]") {
+			ctx.push_simple_group("table_of_contents");
+		} else if (ctx.line.match(HORIZONTAL_RULE_REGEX)) {
+			ctx.push_simple_group("horizontal_rule");
+		} else if (match_quote_block(ctx.line, ctx.current_block)) {
+			ctx.push_if_not_group("quote");
+			ctx.append();
+		} else if (
+			context.list
+			&& (
+				(found = ctx.line.match(LIST_DETECTION_REGEX))
+				|| (ctx.current_block.startsWith("list") && (ctx.line.startsWith(" ") || ctx.line === ""))
+			)
+		) {
 			// List
-			if (!current_block.startsWith("list")) {
-				push_group();
+			if (!ctx.current_block.startsWith("list")) {
+				ctx.push_group();
 
 				const ordered = is_list_ordered(found!);
 
-				current_block = "list_" + (ordered ? "ordered" : "unordered");
-				current = line;
+				ctx.begin("list_" + (ordered ? "ordered" : "unordered"));
 			} else {
 				// Ordered/Unordered mixing prevention.
-				if (found && line.match(/^ {2,}/) === null) {
+				if (found && ctx.line.match(/^ {2,}/) === null) {
 					const ordered = is_list_ordered(found);
 
-					if (current_block !== ("list_" + (ordered ? "ordered" : "unordered"))) {
-						push_group("list_" + (ordered ? "ordered" : "unordered"));
-						current = line;
+					if (ctx.current_block !== ("list_" + (ordered ? "ordered" : "unordered"))) {
+						ctx.push_group("list_" + (ordered ? "ordered" : "unordered"));
+						ctx.append();
 						continue;
 					}
 				}
-				current += "\n" + line;
+
+				ctx.append();
 			}
-		} else if (context.table && (found = line.match(TABLE_DETECTION_REGEX))) {
-			if (current_block !== "table") {
-				const next = lines[index + 1];
+		} else if (context.table && (found = ctx.line.match(TABLE_DETECTION_REGEX))) {
+			if (ctx.current_block !== "table") {
+				const next = ctx.peek_next();
 				if (next && (found = next.match(TABLE_SEPARATOR_REGEX))) {
-					push_group("table");
-					current = line.trimStart();
+					ctx.push_group("table");
+					ctx.append(ctx.line.trimStart());
 					continue;
 				} else {
-					do_paragraph(line);
+					ctx.append_paragraph();
 					continue;
 				}
 			}
 
-			if ((found = line.match(TABLE_SEPARATOR_REGEX))) {
+			let line = ctx.line;
+
+			if ((found = ctx.line.match(TABLE_SEPARATOR_REGEX))) {
 				line = line.substring(0, (line.length - found[1].length));
 			}
 
-			current += "\n" + line.trimStart();
-		} else if (line === "") {
-			push_group();
-		} else if (context.doc && (found = line.match(FOOTNOTE_REF_REGEX)) !== null) {
+			ctx.append(line.trimStart());
+		} else if (ctx.line === "") {
+			ctx.push_group();
+		} else if (context.doc && (found = ctx.line.match(FOOTNOTE_REF_REGEX)) !== null) {
 			const name = found[1];
 			const text = found[2];
 			context.doc.add_footnote(name, parse_nodes(text, false, context));
-		} else if (context.doc && (found = line.match(REFERENCE_REGEX)) !== null) {
+		} else if (context.doc && (found = ctx.line.match(REFERENCE_REGEX)) !== null) {
 			const name = found[1];
 			const url = found[2];
 			const tooltip = found[3];
 			context.doc.ref(name, new md.Reference(url, tooltip));
 		} else {
-			do_paragraph(line);
+			ctx.append_paragraph();
 		}
 	}
 
-	push_group();
+	ctx.push_group();
 
-	return blocks.content;
+	return ctx.blocks;
 }
 
 /**
@@ -788,8 +891,6 @@ function parse_block(block: BlockGroup, context: ParsingContext): md.BlockElemen
 	let found;
 
 	switch (block.type) {
-		case "comment":
-			return new md.Comment(block.block.replace(/^\s*<!-?-?/, ""));
 		case "heading": {
 			// Heading
 			const nodes = block.block.split(" ");
@@ -817,9 +918,17 @@ function parse_block(block: BlockGroup, context: ParsingContext): md.BlockElemen
 		}
 		case "inline_html": {
 			// Inline HTML
-			const purged = purge_inline_html(block.block, context.inline_html.disallowed_tags);
-			const modified_context = html.merge_objects(context, {inline_html_block: true});
-			return new md.InlineHTML(parse_nodes(purged, true, modified_context));
+			const modified_context = html.merge_objects(context, {
+				meta_control: {
+					newline_as_linebreaks: false
+				},
+				inline_html_block: true
+			});
+			return new md.InlineHtml(
+				parse_nodes(
+					block.block, true, modified_context, true
+				)
+			);
 		}
 		case "inline_latex": {
 			// Inline LaTeX
@@ -1003,7 +1112,12 @@ function parse_blocks(string: string, context: ParsingContext): (md.BlockElement
 	return blocks.map(block => parse_block(block, context));
 }
 
-function parse_nodes(line: string, allow_linebreak: boolean, context: ParsingContext): md.Node[] {
+function parse_nodes(
+	line: string,
+	allow_linebreak: boolean,
+	context: ParsingContext,
+	preserve_new_lines: boolean = false
+): md.Node[] {
 	context = html.merge_objects(DEFAULT_OPTIONS, context);
 
 	const nodes: md.Node[] = [];
@@ -1014,8 +1128,15 @@ function parse_nodes(line: string, allow_linebreak: boolean, context: ParsingCon
 		add: function (text: string): void {
 			this.word += text;
 		},
-		push_text_if_present: function (nodes: md.Node[]) {
-			this.word = push_text_if_present(this.word, nodes);
+		push_text_if_present: function (nodes: md.Node[]): void {
+			if (!preserve_new_lines) {
+				this.word = push_text_if_present(this.word, nodes);
+			} else {
+				if (this.word && this.word !== "") {
+					nodes.push(new md.Text(smart_decode_html(this.word)));
+				}
+				this.word = "";
+			}
 		}
 	};
 
@@ -1046,9 +1167,9 @@ function parse_nodes(line: string, allow_linebreak: boolean, context: ParsingCon
 			((result = line.substring(index).match(INLINE_HTML_BR_REGEX))
 				|| (context.inline_html_block && (result = line.substring(index).match(INLINE_HTML_SKIP_REGEX)))
 				|| (result = html.parse_comment(line.substring(index))))) {
-			if (result instanceof html.Comment) {
+			if ("comment" in result) {
 				word.push_text_if_present(nodes);
-				nodes.push(new md.Comment(result.content));
+				nodes.push(new md.Comment(result.comment.content));
 				index += result.length - 1;
 			} else {
 				const regex_result = result as RegExpMatchArray;
@@ -1087,7 +1208,11 @@ function parse_nodes(line: string, allow_linebreak: boolean, context: ParsingCon
 			if (context.meta_control.newline_as_linebreaks) {
 				word.push_text_if_present(nodes);
 				nodes.push(md.LINEBREAK);
-			} else word.add(" ");
+			} else if (preserve_new_lines) {
+				word.add("\n");
+			} else {
+				word.add(" ");
+			}
 		} else if (char === ":" && context.emoji.enabled
 			&& (result = try_parse_emoji(line, index, context))) {
 			word.push_text_if_present(nodes);
@@ -1193,4 +1318,46 @@ function parse_nodes(line: string, allow_linebreak: boolean, context: ParsingCon
 	}
 
 	return nodes;
+}
+
+function smart_decode_html(text: string): string {
+	return html.decode_html(text
+		.replaceAll("&lt;", "&amp;lt;")
+		.replaceAll("&gt;", "&amp;gt;")
+	);
+}
+
+/**
+ * Sanitizes all disallowed HTML element in the tree of the given element.
+ *
+ * @param element the element to sanitize
+ * @param context the parsing context
+ */
+function sanitize_inline_html(element: html.Element, context: ParsingContext): void {
+	element.children = element.children.flatMap(node => {
+		if (node instanceof html.Element) {
+			sanitize_inline_html(node, context);
+
+			if (!is_html_tag_allowed(node.tag.name, context)) {
+				let start_text = `<${node.tag.name}`;
+
+				if (node.attributes.length > 0) {
+					start_text += " " + node.attributes.map(attr => attr.html()).join(" ");
+				}
+
+				const new_nodes = [
+					new html.Text(start_text + ">"),
+					...node.children
+				];
+
+				if (!node.tag.self_closing) {
+					new_nodes.push(new html.Text(`</${node.tag.name}>`));
+				}
+
+				return new_nodes;
+			}
+		}
+
+		return node;
+	});
 }

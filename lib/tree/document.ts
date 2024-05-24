@@ -9,7 +9,7 @@
  */
 
 import { BlockElement, Comment, Element, Node, Reference, Text } from "./base.ts";
-import { Paragraph } from "./block.ts";
+import { Paragraph, InlineHtml } from "./block.ts";
 import { Link } from "./element.ts";
 import { to_anchor_name } from "../utils.ts";
 
@@ -70,9 +70,22 @@ export class Document {
 	public push(block: BlockElement<any> | Text | Comment | string): this {
 		if (typeof block === "string")
 			block = new Text(block);
-		if (block instanceof Text || block instanceof Comment)
-			block = new Paragraph([block]);
-		this.blocks.push(block);
+		if (block instanceof Text)
+			block = new Paragraph(block);
+		if (block instanceof Comment) {
+			const last_block = this.blocks[this.blocks.length - 1];
+
+			if (last_block instanceof Paragraph) {
+				last_block.push(block);
+			} else if (last_block instanceof InlineHtml) {
+				last_block.push(block);
+			} else {
+				this.blocks.push(new InlineHtml(block));
+			}
+		} else {
+			this.blocks.push(block);
+		}
+
 		return this;
 	}
 

@@ -1,5 +1,5 @@
 import { Application } from "@oak/oak";
-import { serve_files } from "@lambdaurora/lambdawebserver";
+import { LoggerMiddleware, serve_files } from "@lambdaurora/lambdawebserver";
 import { build_bundle } from "./base.ts";
 
 const EXAMPLES_BUILD_DIR = "./build";
@@ -9,6 +9,7 @@ await build_bundle("examples/previewer/script.ts", `${EXAMPLES_BUILD_DIR}/previe
 
 const app = new Application();
 
+app.use(new LoggerMiddleware().middleware());
 app.use(serve_files("./examples/"));
 app.use(serve_files(EXAMPLES_BUILD_DIR));
 

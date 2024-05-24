@@ -9,7 +9,7 @@
  */
 
 import * as html from "@lambdaurora/libhtml";
-import { BlockElement, Element, HtmlRenderable, map_nodes, Node, NodeInput, Text } from "./base.ts";
+import { BlockElement, Comment, Element, HtmlRenderable, map_nodes, Node, NodeInput, Text } from "./base.ts";
 import { Link } from "./element.ts";
 import { Document } from "./document.ts";
 import { to_anchor_name } from "../utils.ts";
@@ -361,10 +361,17 @@ export class ListEntry extends Element<Node> {
 	}
 }
 
+export class CommentBlock extends BlockElement<Comment> {
+	public toJSON(): string | object {
+		return this.children[0].toJSON();
+	}
+
+}
+
 /**
  * Represents a block of inlined HTML.
  */
-export class InlineHTML extends BlockElement<Node> {
+export class InlineHtml extends BlockElement<Node> {
 	constructor(nodes: NodeInput) {
 		super(map_nodes(nodes), true);
 	}

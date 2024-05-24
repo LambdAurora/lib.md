@@ -608,18 +608,24 @@ function render_blocks(markdown: md.Document, blocks: readonly md.Node[], parent
 			}
 
 			parent.append_child(quote);
-		} else if (block instanceof md.InlineHTML) {
+		} else if (block instanceof md.InlineHtml) {
 			if (context.inline_html.enable) {
-				html.parse_nodes(render_inline(markdown, block.children, html.merge_objects(context, {should_escape: false}), true).map(node => {
-					if (typeof node === "string") {
-						return node;
-					} else {
-						return node.html();
-					}
-				}).join(""))
-					.forEach(node => {
-						parent.append_child(sanitize_raw(node));
-					});
+				html.parse_nodes(
+					render_inline(
+						markdown,
+						block.children, 
+						html.merge_objects(context, {should_escape: false}),
+						true
+					).map(node => {
+						if (typeof node === "string") {
+							return node;
+						} else {
+							return node.html();
+						}
+					}).join("")
+				).forEach(node => {
+					parent.append_child(sanitize_raw(node));
+				});
 			} else {
 				const paragraph = html.create_element("p");
 

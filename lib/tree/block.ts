@@ -9,7 +9,7 @@
  */
 
 import * as html from "@lambdaurora/libhtml";
-import { BlockElement, Comment, Element, HtmlRenderable, map_nodes, Node, NodeInput, Text } from "./base.ts";
+import { BlockElement, Element, HtmlRenderable, map_nodes, Node, NodeInput, Text } from "./base.ts";
 import { Link } from "./element.ts";
 import { Document } from "./document.ts";
 import { to_anchor_name } from "../utils.ts";

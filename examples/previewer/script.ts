@@ -81,11 +81,12 @@ let render_options: Partial<md.DomRenderOptions> = {
 	latex: {
 		katex: katex
 	},
+	link: {
+		inline_class_name: "ls_raw_link"
+	},
 	spoiler: { enable: true },
 	table: {
-		process: t => {
-			t.attr("class", "ls_grid_table");
-		}
+		class_name: "ls_grid_table"
 	},
 	parent: markdown_preview
 };

@@ -19,12 +19,15 @@ const DEFAULT_UNDERLINE_CLASS_NAME = "underline";
 
 /**
  * Represents options that allows to set a custom class name.
+ *
+ * @version 2.2.0
+ * @since 2.0.0
  */
 export interface ClassNameOptions {
 	/**
 	 * The custom class name.
 	 */
-	class_name?: string;
+	class_name?: string | readonly string[];
 }
 
 /**
@@ -91,9 +94,28 @@ export interface FootnoteRenderOptions {
 }
 
 /**
- * Represents the options related to highlight elements rendering.
+ * Represents the options related to heading rendering.
+ *
+ * @version 2.2.0
+ * @since 2.2.0
  */
-export interface HighlightRenderOptions {
+export interface HeadingRenderOptions extends ClassNameOptions {
+	/**
+	 * Applies post processing if needed.
+	 *
+	 * @param node the Markdown heading node
+	 * @param element the rendered heading HTML element
+	 */
+	post_process: (node: md.Heading, element: html.Element) => void;
+}
+
+/**
+ * Represents the options related to highlight elements rendering.
+ *
+ * @version 2.2.0
+ * @since 2.0.0
+ */
+export interface HighlightRenderOptions extends ClassNameOptions {
 	/**
 	 * `true` if highlight elements are enabled, `false` otherwise
 	 */
@@ -138,6 +160,23 @@ export interface LatexRenderOptions {
 }
 
 /**
+ * Represents the options related to link rendering.
+ *
+ * @version 2.2.0
+ * @since 2.2.0
+ */
+export interface LinkRenderOptions extends ClassNameOptions {
+	/**
+	 * The custom class name for standard links.
+	 */
+	standard_class_name?: string | readonly string[];
+	/**
+	 * The custom class name for inline links.
+	 */
+	inline_class_name?: string | readonly string[];
+}
+
+/**
  * Represents the options related to spoiler rendering options.
  */
 export interface SpoilerRenderOptions {
@@ -161,8 +200,11 @@ export interface SpoilerRenderOptions {
 
 /**
  * Represents the options related to table rendering.
+ *
+ * @version 2.2.0
+ * @since 2.0.0
  */
-export interface TableRenderOptions {
+export interface TableRenderOptions extends ClassNameOptions {
 	process: (element: html.Element) => void;
 }
 
@@ -198,6 +240,12 @@ interface BaseRenderOptions {
 	 */
 	footnote: Partial<FootnoteRenderOptions>;
 	/**
+	 * Options related to headings.
+	 *
+	 * @since 2.2.0
+	 */
+	heading: Partial<HeadingRenderOptions>;
+	/**
 	 * Options related to highlight elements.
 	 */
 	highlight: Partial<HighlightRenderOptions>;
@@ -215,6 +263,12 @@ interface BaseRenderOptions {
 	 * Options related to LaTeX expressions rendering.
 	 */
 	latex: Partial<LatexRenderOptions>;
+	/**
+	 * Options related to links rendering.
+	 *
+	 * @since 2.2.0
+	 */
+	link: Partial<LinkRenderOptions>;
 	/**
 	 * Options related to spoiler elements rendering.
 	 */
@@ -253,14 +307,16 @@ export interface DomRenderOptions extends BaseRenderOptions {
 	parent?: HTMLElement | null;
 }
 
-interface RenderContext extends RenderOptions {
+export interface RenderContext extends RenderOptions {
 	block_code: BlockCodeRenderOptions;
 	checkbox: CheckBoxRenderOptions;
 	code: CodeRenderOptions;
 	footnote: FootnoteRenderOptions;
+	heading: HeadingRenderOptions;
 	highlight: HighlightRenderOptions;
 	inline_html: InlineHtmlRenderOptions;
 	latex: LatexRenderOptions;
+	link: LinkRenderOptions;
 	spoiler: SpoilerRenderOptions;
 	table: TableRenderOptions;
 	underline: UnderlineRenderOptions;
@@ -271,7 +327,6 @@ interface RenderContext extends RenderOptions {
 
 const DEFAULT_OPTIONS: RenderOptions = {
 	block_code: {
-		class_name: "block_code",
 		highlighter: null
 	},
 	checkbox: {
@@ -293,30 +348,37 @@ const DEFAULT_OPTIONS: RenderOptions = {
 		 * @returns the array of HTML elements to append
 		 */
 		render(footnotes: readonly md.FootnoteEntry[], nodes_render: (nodes: md.Node[], parent: html.Element) => void): html.Node[] {
-			const ol = html.create_element("ol")
-				.with_attr("class", this.footnotes_class);
-
-			footnotes.forEach((footnote) => {
+			const entries = footnotes.map((footnote) => {
 				const el = html.create_element("li")
 					.with_attr("id", footnote.anchor);
 
 				nodes_render(footnote.nodes, el);
 
 				el.append_child(" ");
-				el.append_child(html.create_element("a")
-					.with_attr("class", this.footnote_src_link_class)
-					.with_attr("href", `#${footnote.anchor}:src`)
-					.with_child("↩")
-				);
+				el.append_child(html.a({
+					attributes: {
+						class: this.footnote_src_link_class,
+						href: `#${footnote.anchor}:src`
+					},
+					children: ["↩"]
+				}));
 
-				ol.append_child(el);
+				return el;
 			});
 
 			return [
-				html.create_element("hr"),
-				ol,
+				html.hr(),
+				html.ol({
+					attributes: {
+						class: this.footnotes_class
+					},
+					children: entries
+				}),
 			];
 		}
+	},
+	heading: {
+		post_process: () => {}
 	},
 	highlight: {
 		enable: true
@@ -332,9 +394,9 @@ const DEFAULT_OPTIONS: RenderOptions = {
 		render: null,
 		error_classes: ["error"]
 	},
+	link: {},
 	table: {
-		process: _ => {
-		}
+		process: _ => {}
 	},
 	underline: {
 		enable: true
@@ -371,6 +433,16 @@ function merge_default_options(options: Partial<RenderOptions>): RenderContext {
 	return html.merge_objects(DEFAULT_OPTIONS, options) as RenderContext;
 }
 
+function get_classes(classes: string | readonly string[] | undefined): string | string[] | undefined {
+	if (typeof classes === "string") {
+		return classes;
+	} else if (classes === undefined) {
+		return undefined;
+	} else {
+		return [...classes];
+	}
+}
+
 function fill_element(element: html.Element, nodes: readonly html.Node[]): void {
 	nodes.forEach(node => element.append_child(node));
 }
@@ -386,7 +458,7 @@ function render_simple(markdown: md.Document, node: md.Element<any>, context: Re
 	return element;
 }
 
-function render_latex(node: md.InlineLatex | md.LatexDisplay, context: RenderContext): html.Node | string {
+function render_latex(node: md.InlineLatex | md.LatexDisplay, context: RenderContext): html.Node {
 	if (!context.latex.render) {
 		return new html.Text(node.toString());
 	}
@@ -401,13 +473,13 @@ function render_latex(node: md.InlineLatex | md.LatexDisplay, context: RenderCon
 	}
 
 	if (!context.should_escape && typeof latex === "string") {
-		return latex;
+		return new html.Text(latex);
 	}
 
 	if (latex instanceof html.Element)
 		return latex;
 
-	const template = html.create_element("div");
+	const template = html.div();
 	html.parse(latex, template);
 	if (template.children.length === 1)
 		return template.children[0];
@@ -425,7 +497,7 @@ function render_inline(markdown: md.Document, nodes: readonly md.Node[], context
 			if (node.is_linebreak()) {
 				if (!allow_linebreak)
 					return null;
-				return html.create_element("br");
+				return html.br();
 			}
 
 			if (!context.should_escape)
@@ -438,8 +510,31 @@ function render_inline(markdown: md.Document, nodes: readonly md.Node[], context
 			}
 		} else if (node instanceof md.InlineCode) {
 			return context.code.process(node);
+		} else if (node instanceof md.InlineLink) {
+			const rendered = node.as_html();
+
+			let classes = "";
+			if (context.link.class_name) {
+				if (typeof context.link.class_name === "string") {
+					classes += context.link.class_name;
+				} else {
+					classes += context.link.class_name.join(" ");
+				}
+			}
+			if (context.link.inline_class_name) {
+				if (typeof context.link.inline_class_name === "string") {
+					classes += " " + context.link.inline_class_name;
+				} else {
+					classes += " " + context.link.inline_class_name.join(" ");
+				}
+			}
+			if (classes) {
+				rendered.attr("class", classes);
+			}
+
+			return rendered;
 		} else if (node instanceof md.Image) {
-			const element = html.create_element("img");
+			const element = html.img();
 			element.alt = node.get_nodes_as_string();
 
 			let ref: md.Reference = node.ref;
@@ -455,11 +550,11 @@ function render_inline(markdown: md.Document, nodes: readonly md.Node[], context
 				}
 			}
 
-			element.attr("class", context.image.class_name);
+			element.attr("class", get_classes(context.image.class_name));
 
 			return element;
 		} else if (node instanceof md.Link) {
-			const element = html.create_element("a");
+			const element = html.a();
 
 			let ref = node.ref;
 			if (node.ref_name) {
@@ -476,6 +571,25 @@ function render_inline(markdown: md.Document, nodes: readonly md.Node[], context
 
 			fill_element(element, render_inline(markdown, node.children, context, false));
 
+			let classes = "";
+			if (context.link.class_name) {
+				if (typeof context.link.class_name === "string") {
+					classes += context.link.class_name;
+				} else {
+					classes += context.link.class_name.join(" ");
+				}
+			}
+			if (context.link.standard_class_name) {
+				if (typeof context.link.standard_class_name === "string") {
+					classes += " " + context.link.standard_class_name;
+				} else {
+					classes += " " + context.link.standard_class_name.join(" ");
+				}
+			}
+			if (classes) {
+				element.attr("class", classes);
+			}
+
 			return element;
 		} else if (node instanceof md.Bold || (!context.underline?.enable && node instanceof md.Underline)) {
 			return render_simple(markdown, node, context, "b", allow_linebreak);
@@ -483,16 +597,16 @@ function render_inline(markdown: md.Document, nodes: readonly md.Node[], context
 			return render_simple(markdown, node, context, "em", allow_linebreak);
 		} else if (node instanceof md.Strikethrough) {
 			const element = render_simple(markdown, node, context, "span", allow_linebreak);
-			element.attr("class", context.strikethrough?.class_name ?? DEFAULT_STRIKETHROUGH_CLASS_NAME);
+			element.attr("class", get_classes(context.strikethrough?.class_name ?? DEFAULT_STRIKETHROUGH_CLASS_NAME));
 			return element;
 		} else if (node instanceof md.Underline && context.underline?.enable) {
 			const element = render_simple(markdown, node, context, "span", allow_linebreak);
-			element.attr("class", context.underline.class_name ?? DEFAULT_UNDERLINE_CLASS_NAME);
+			element.attr("class", get_classes(context.underline.class_name ?? DEFAULT_UNDERLINE_CLASS_NAME));
 			return element;
 		} else if (node instanceof md.Highlight) {
 			if (!context.highlight.enable) {
 				const content = render_inline(markdown, node.children, context, false);
-				const container = html.create_element("span");
+				const container = html.span();
 				if (content.length !== 0 && content[0] instanceof html.Text) {
 					content[0].content = "==" + content[0].content;
 				} else {
@@ -503,12 +617,18 @@ function render_inline(markdown: md.Document, nodes: readonly md.Node[], context
 				return container;
 			}
 
-			return render_simple(markdown, node, context, "mark", allow_linebreak);
+			const element = render_simple(markdown, node, context, "mark", allow_linebreak);
+
+			if (context.highlight.class_name) {
+				element.attr("class", get_classes(context.highlight.class_name));
+			}
+
+			return element;
 		} else if (node instanceof md.Spoiler) {
 			const content = render_inline(markdown, node.children, context, false);
 
 			if (!context.spoiler.enable) {
-				const container = html.create_element("span");
+				const container = html.span();
 				if (content.length !== 0 && content[0] instanceof html.Text) {
 					content[0].content = "||" + content[0].content;
 				} else {
@@ -523,20 +643,29 @@ function render_inline(markdown: md.Document, nodes: readonly md.Node[], context
 				const image = content[0] as html.Element;
 				image.attr("class").add(context.spoiler.image_class_name);
 
-				return html.create_element("div")
-					.with_attr("class", context.spoiler.class_name)
-					.with_child(html.create_element("div")
-						.with_attr("class", `${context.spoiler.image_class_name} ${context.spoiler.hidden_class_name}`)
-						.with_child(image)
-					);
+				return html.div({
+					attributes: {
+						class: context.spoiler.class_name
+					},
+					children: [
+						html.div({
+							attributes: {
+								class: `${context.spoiler.image_class_name} ${context.spoiler.hidden_class_name}`
+							},
+							children: [image]
+						})
+					]
+				});
 			}
 
-			const content_element = html.create_element("span");
-			content.forEach(node => content_element.append_child(node));
-
-			return html.create_element("span")
-				.with_attr("class", `${context.spoiler.class_name} ${context.spoiler.hidden_class_name}`)
-				.with_child(content_element);
+			return html.span({
+				attributes: {
+					class: `${context.spoiler.class_name} ${context.spoiler.hidden_class_name}`
+				},
+				children: [
+					html.span(content)
+				]
+			});
 		} else if (node instanceof md.InlineLatex) {
 			return render_latex(node, context);
 		} else if (context.footnote && node instanceof md.FootNoteReference) {
@@ -555,16 +684,18 @@ function render_blocks(markdown: md.Document, blocks: readonly md.Node[], parent
 
 			render_inline(markdown, block.children, context, false).forEach(node => heading.append_child(node));
 
+			if (context.heading.class_name) {
+				heading.attr("class", get_classes(context.heading.class_name));
+			}
+
+			context.heading.post_process(block, heading);
+
 			parent.append_child(heading);
 		} else if (block instanceof md.Paragraph) {
 			if (context.paragraph_as_text) {
 				render_inline(markdown, block.children, context, true).forEach(node => parent.append_child(node));
 			} else {
-				const paragraph = html.create_element("p");
-
-				render_inline(markdown, block.children, context, true).forEach(node => paragraph.append_child(node));
-
-				parent.append_child(paragraph);
+				parent.append_child(html.p(render_inline(markdown, block.children, context, true)));
 			}
 		} else if (block instanceof md.BlockCode) {
 			const code = html.create_element("code");
@@ -584,13 +715,16 @@ function render_blocks(markdown: md.Document, blocks: readonly md.Node[], parent
 				code.append_child(new html.Text(block.code));
 			}
 
-			const pre = html.create_element("pre")
-				.with_attr("class", language_class)
-				.with_child(code.with_attr("class", language_class));
+			const pre = html.pre({
+				attributes: {
+					class: language_class
+				},
+				children: [code.with_attr("class", language_class)]
+			});
 
 			if (context.block_code.class_name) {
 				parent.append_child(html.create_element("div")
-					.with_attr("class", context.block_code.class_name)
+					.with_attr("class", get_classes(context.block_code.class_name))
 					.with_child(pre)
 				);
 			} else {
@@ -627,29 +761,27 @@ function render_blocks(markdown: md.Document, blocks: readonly md.Node[], parent
 					parent.append_child(sanitize_raw(node));
 				});
 			} else {
-				const paragraph = html.create_element("p");
-
-				render_inline(markdown, [new md.Text(block.toString())], context, true).forEach(node => paragraph.append_child(node));
-
-				parent.append_child(paragraph);
+				parent.append_child(html.p(render_inline(markdown, [new md.Text(block.toString())], context, true)));
 			}
-		} else if (block instanceof md.InlineLatex) {
+		} else if (block instanceof md.LatexDisplay) {
 			const element = render_latex(block, context);
 			if (element instanceof html.Text && !(element instanceof html.Comment) && !context.paragraph_as_text) {
-				const paragraph = html.create_element("p");
-				paragraph.append_child(element);
-				parent.append_child(paragraph);
+				parent.append_child(html.p([element]));
 				return;
 			}
 			parent.append_child(element);
 		} else if (block instanceof md.List) {
 			parent.append_child(render_list(markdown, block, context));
 		} else if (block instanceof md.Table) {
-			const table = html.create_element("table")
-				// See https://developer.mozilla.org/en-US/docs/Web/CSS/display#tables
-				// We have to re-add the role=table to avoid destroying accessibility if a display: block is used,
-				// which is most often needed as display: table does not respect max-width rules.
-				.with_attr("role", "table");
+			const table = html.table({
+				attributes: {
+					// See https://developer.mozilla.org/en-US/docs/Web/CSS/display#tables
+					// We have to re-add the role=table to avoid destroying accessibility if a display: block is used,
+					// which is most often needed as display: table does not respect max-width rules.
+					role: "table",
+					class: get_classes(context.table.class_name)
+				}
+			});
 
 			// Head
 			const thead = html.create_element("thead")
@@ -690,16 +822,17 @@ function render_list(markdown: md.Document, list: md.List, context: RenderContex
 
 		if (context.checkbox.enable && typeof entry.checked === "boolean") {
 			li.style("list-style-type", "none");
-			const checkbox = html.create_element("input")
-				.with_attr("type", "checkbox")
-				.with_attr("style", {"list-style-type": "none", margin: "0 0.2em 0 -1.3em"});
-
-			if (entry.checked)
-				checkbox.attr("checked");
-
-			if (context.checkbox.disabled_property) {
-				checkbox.attr("disabled");
-			}
+			const checkbox = html.input({
+				attributes: {
+					type: "checkbox",
+					checked: entry.checked ? "" : undefined,
+					disabled: context.checkbox.disabled_property ? "" : undefined,
+				},
+				style: {
+					"list-style-type": "none",
+					margin: "0 0.5em 0 -1.3em",
+				}
+			});
 
 			li.append_child(checkbox);
 		}

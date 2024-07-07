@@ -79,3 +79,12 @@
 
 - Fixed null tooltip handling.
 - Updated lib.html.
+
+## 2.2.0
+
+- Added rendering options for better flexibility.
+  - Added heading post processing.
+  - Added highlight class name option.
+  - Added link class name options.
+  - Added table class name option.
+- Updated lib.html.

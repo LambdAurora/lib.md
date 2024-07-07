@@ -226,7 +226,7 @@ export class Link extends Element<Node> {
 	/**
 	 * Returns whether this element has a tooltip or not.
 	 *
-	 * @return `true` if this element has a tooltip, else `false`
+	 * @return `true` if this element has a tooltip, or `false` otherwise
 	 */
 	public has_tooltip(): boolean {
 		return this.ref.has_tooltip();
@@ -361,12 +361,15 @@ export class FootNoteReference extends Element<Node> implements HtmlRenderable {
 		if (index !== -1) {
 			const anchor_id = to_anchor_name(this.name.toLowerCase());
 
-			return html.create_element("sup")
-				.with_child(html.create_element("a")
-					.with_attr("id", `fn:${anchor_id}:src`)
-					.with_attr("href", "#fn:" + anchor_id)
-					.with_child(`${index + 1}`)
-				);
+			return html.sup([
+				html.a({
+					attributes: {
+						id: `fn:${anchor_id}:src`,
+						href: `#fn:${anchor_id}`
+					},
+					children: [`${index + 1}`]
+				})
+			]);
 		} else return new html.Text(this.name);
 	}
 }

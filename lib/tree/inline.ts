@@ -130,7 +130,7 @@ export class InlineCode extends Text implements HtmlRenderable {
 	 * @returns the corresponding HTML node
 	 */
 	public as_html(): html.Element {
-		return html.create_element("code").with_child(new html.Text(this.content));
+		return html.code([new html.Text(this.content)]);
 	}
 }
 
@@ -172,7 +172,11 @@ export class InlineLink extends Text implements HtmlRenderable {
 	 * @returns the corresponding HTML node
 	 */
 	public as_html(): html.Element {
-		return html.create_element("a").with_attr("href", this.content)
-			.with_child(this.content);
+		return html.a({
+			attributes: {
+				href: this.content
+			},
+			children: [this.content]
+		});
 	}
 }

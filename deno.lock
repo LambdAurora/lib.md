@@ -48,7 +48,8 @@
     "jsr:@std/path@^1.0.6": "1.0.8",
     "jsr:@std/path@~0.225.1": "0.225.1",
     "jsr:@std/streams@~0.224.1": "0.224.1",
-    "npm:path-to-regexp@6.2.1": "6.2.1"
+    "npm:path-to-regexp@6.2.1": "6.2.1",
+    "npm:prismjs@1.27": "1.27.0"
   },
   "jsr": {
     "@lambdaurora/lambdawebserver@3.0.0": {
@@ -278,12 +279,14 @@
   "npm": {
     "path-to-regexp@6.2.1": {
       "integrity": "sha512-JLyh7xT1kizaEvcaXOQwOc2/Yhw6KZOvPf1S8401UyLk86CU79LN3vl7ztXGm/pZ+YjoyAJ4rxmHwbkBXJX+yw=="
+    },
+    "prismjs@1.27.0": {
+      "integrity": "sha512-t13BGPUlFDR7wRB5kQDG4jjl7XeuH6jbJGt11JHPL96qwsEHNX2+68tFXqc1/k+/jALsbSWJKUOT/hcYAZ5LkA=="
     }
   },
   "remote": {
     "https://cdn.jsdelivr.net/npm/emoji-js@3.6.0/lib/emoji.min.js": "37b415412937ff42aeb0e512f63726265307c76124b88df3cb7f0f3d6be8f42f",
     "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.mjs": "aa306c0a1d15105f8c13dd78d2ea1edc0d9d4b0a229e7364eafe3806df3c9a0f",
-    "https://cdn.jsdelivr.net/npm/prismjs@1.24.1/prism.min.js": "60448eb4ec5dee1eafcc52d24c54f4df643e2dc7aef48dcd7c7df15fbcf28d0d",
     "https://deno.land/x/denoflate@1.2.1/mod.ts": "f5628e44b80b3d80ed525afa2ba0f12408e3849db817d47a883b801f9ce69dd6",
     "https://deno.land/x/denoflate@1.2.1/pkg/denoflate.js": "b9f9ad9457d3f12f28b1fb35c555f57443427f74decb403113d67364e4f2caf4",
     "https://deno.land/x/denoflate@1.2.1/pkg/denoflate_bg.wasm.js": "d581956245407a2115a3d7e8d85a9641c032940a8e810acbd59ca86afd34d44d",
@@ -297,7 +300,8 @@
       "jsr:@luca/esbuild-deno-loader@0.11",
       "jsr:@oak/oak@^17.1.3",
       "jsr:@std/assert@^1.0.8",
-      "jsr:@std/fs@^1.0.6"
+      "jsr:@std/fs@^1.0.6",
+      "npm:prismjs@1.27"
     ]
   }
 }

@@ -1,6 +1,6 @@
 import * as html from "@lambdaurora/libhtml";
 import * as md from "../../mod.ts";
-import Prism from "https://cdn.jsdelivr.net/npm/prismjs@1.24.1/prism.min.js";
+import "@prism.js";
 
 await fetch("./example.md")
 	.then(response => {

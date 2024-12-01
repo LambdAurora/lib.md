@@ -1,4 +1,4 @@
-import * as esbuild from "https://deno.land/x/esbuild@v0.21.3/mod.js";
+import * as esbuild from "@esbuild/mod.js";
 import { BUILD_DIR, ENTRYPOINT, SOURCES_DIR, build_bundle, clear_dir } from "./base.ts";
 
 await clear_dir(BUILD_DIR);

@@ -88,3 +88,8 @@
   - Added link class name options.
   - Added table class name option.
 - Updated lib.html.
+
+## 2.3.0
+
+- Added allowed attributes in inline HTML rendering option.
+- Fixed bad handling of malformed image elements.

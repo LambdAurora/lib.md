@@ -255,13 +255,14 @@ export class Link extends Element<Node> {
 /**
  * Represents an image.
  *
- * @version 2.0.0
+ * @version 2.3.0
  * @since 1.0.0
  */
 export class Image extends Link {
 	constructor(url: string, alt: string, tooltip?: string | null, reference?: string) {
-		super(url, (!alt || alt === "") ? (() => {
-			if (url.startsWith("data:image/")) return "Image";
+		super(url ?? "", (!alt || alt === "") ? (() => {
+			if (!url) return [];
+			else if (url.startsWith("data:image/")) return "Image";
 			else return url;
 		})() : alt, tooltip, reference);
 	}

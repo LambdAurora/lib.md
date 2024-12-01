@@ -272,7 +272,7 @@ export class List extends BlockElement<ListEntry> {
 	 * @param items the entries to append
 	 * @returns this element
 	 */
-	public push(...items: (string | Node)[]): this {
+	public override push(...items: (string | Node)[]): this {
 		return super.push(...items.map(item => {
 			if (!(item instanceof ListEntry)) {
 				if (item instanceof List) {
@@ -453,7 +453,7 @@ export class Table extends BlockElement<TableRow> {
 	 * @param rows the rows to append
 	 * @returns this element
 	 */
-	public push(...rows: TableRow[]): this {
+	public override push(...rows: TableRow[]): this {
 		return super.push(...rows.map(row => {
 			if (row.table !== this) {
 				const cloned = row.clone();
@@ -579,7 +579,7 @@ export class TableRow extends BlockElement<TableEntry> {
 	 * @param columns the column to append
 	 * @returns this element
 	 */
-	public push(...columns: NodeInput[]): this {
+	public override push(...columns: NodeInput[]): this {
 		return super.push(...columns.map(column => {
 			if (column instanceof TableEntry) {
 				if (column.row !== this) {
@@ -675,7 +675,7 @@ export class TableOfContents extends BlockElement<Node> {
 	 * @param _items the children to append
 	 * @returns this element
 	 */
-	public push(_items: never): this {
+	public override push(_items: never): this {
 		return this;
 	}
 

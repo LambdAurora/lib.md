@@ -131,6 +131,10 @@ export interface InlineHtmlRenderOptions {
 	 */
 	enable: boolean;
 	/**
+	 * List of allowed attributes per HTML tags, with the special key `*` applying to all HTML tags.
+	 */
+	allowed_attributes: { [key: string]: readonly string[] };
+	/**
 	 * List of HTML tags that are not allowed and will be escaped out.
 	 */
 	disallowed_tags: readonly string[];
@@ -325,6 +329,15 @@ export interface RenderContext extends RenderOptions {
 	should_escape: boolean;
 }
 
+const ATTRIBUTES_RULES = {
+	"*": ["align", "aria-hidden", "class", "id", "lang", "style", "title"],
+	img: ["width", "height", "src", "alt"],
+	a: ["href"],
+	audio: ["controls", "loop", "preload", "src"],
+	iframe: ["allow", "allowfullscreen", "frameborder", "src", "width", "height"],
+	source: ["src", "type"]
+};
+
 const DEFAULT_OPTIONS: RenderOptions = {
 	block_code: {
 		highlighter: null
@@ -385,6 +398,7 @@ const DEFAULT_OPTIONS: RenderOptions = {
 	},
 	inline_html: {
 		enable: true,
+		allowed_attributes: ATTRIBUTES_RULES,
 		disallowed_tags: HTML_TAGS_TO_PURGE_SUGGESTION
 	},
 	image: {
@@ -410,20 +424,11 @@ const DEFAULT_OPTIONS: RenderOptions = {
 	parent: null
 }
 
-const ATTRIBUTES_RULES = {
-	"*": ["align", "aria-hidden", "class", "id", "lang", "style", "title"],
-	img: ["width", "height", "src", "alt"],
-	a: ["href"],
-	audio: ["controls", "loop", "preload", "src"],
-	iframe: ["allow", "allowfullscreen", "frameborder", "src", "width", "height"],
-	source: ["src", "type"]
-};
-
-function sanitize_raw<N extends html.Node>(node: N): N {
+function sanitize_raw<N extends html.Node>(node: N, context: RenderContext): N {
 	if (node instanceof html.Element) {
 		node.attributes = node.attributes.filter(attribute =>
-			ATTRIBUTES_RULES["*"].includes(attribute.name)
-			|| (ATTRIBUTES_RULES as any)[node.tag.name]?.includes(attribute.name)
+			context.inline_html.allowed_attributes["*"].includes(attribute.name)
+			|| context.inline_html.allowed_attributes[node.tag.name]?.includes(attribute.name)
 		);
 	}
 	return node;
@@ -466,7 +471,7 @@ function render_latex(node: md.InlineLatex | md.LatexDisplay, context: RenderCon
 	let latex;
 	try {
 		latex = context.latex.render(node);
-	} catch (error) {
+	} catch (error: any) {
 		return html.create_element((node instanceof md.LatexDisplay) ? "div" : "span")
 			.with_attr("class", [...context.latex.error_classes])
 			.with_child(error.message);
@@ -504,7 +509,11 @@ function render_inline(markdown: md.Document, nodes: readonly md.Node[], context
 				return node.content;
 
 			if (context.inline_html.enable) {
-				return html.sanitize_elements(html.parse_nodes(node.content), context.inline_html.disallowed_tags, sanitize_raw);
+				return html.sanitize_elements(
+					html.parse_nodes(node.content),
+					context.inline_html.disallowed_tags,
+					to_sanitize => sanitize_raw(to_sanitize, context)
+				);
 			} else {
 				return new html.Text(node.content);
 			}
@@ -758,7 +767,7 @@ function render_blocks(markdown: md.Document, blocks: readonly md.Node[], parent
 						}
 					}).join("")
 				).forEach(node => {
-					parent.append_child(sanitize_raw(node));
+					parent.append_child(sanitize_raw(node, context));
 				});
 			} else {
 				parent.append_child(html.p(render_inline(markdown, [new md.Text(block.toString())], context, true)));
@@ -883,6 +892,7 @@ export function render_to_html(markdown: md.Document, options: Partial<RenderOpt
 		const enable = options.inline_html;
 		context.inline_html = {
 			enable: enable,
+			allowed_attributes: ATTRIBUTES_RULES,
 			disallowed_tags: (DEFAULT_OPTIONS.inline_html as InlineHtmlRenderOptions).disallowed_tags
 		};
 	}

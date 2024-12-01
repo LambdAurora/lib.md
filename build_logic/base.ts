@@ -18,6 +18,8 @@ export async function clear_dir(dir: string) {
 }
 
 export async function build_bundle(entrypoint: string, out_file: string) {
+	console.log(`Building bundle ${entrypoint}...`);
+
 	await esbuild.build({
 		entryPoints: [
 			entrypoint

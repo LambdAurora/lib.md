@@ -427,10 +427,12 @@ const DEFAULT_OPTIONS: RenderOptions = {
 function sanitize_raw<N extends html.Node>(node: N, context: RenderContext): N {
 	if (context.inline_html.allowed_attributes === true) return node;
 
+	const allowed_attributes = context.inline_html.allowed_attributes;
+
 	if (node instanceof html.Element) {
 		node.attributes = node.attributes.filter(attribute =>
-			context.inline_html.allowed_attributes["*"].includes(attribute.name)
-			|| context.inline_html.allowed_attributes[node.tag.name]?.includes(attribute.name)
+			allowed_attributes["*"].includes(attribute.name)
+			|| allowed_attributes[node.tag.name]?.includes(attribute.name)
 		);
 	}
 	return node;

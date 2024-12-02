@@ -133,7 +133,7 @@ export interface InlineHtmlRenderOptions {
 	/**
 	 * List of allowed attributes per HTML tags, with the special key `*` applying to all HTML tags.
 	 */
-	allowed_attributes: { [key: string]: readonly string[] };
+	allowed_attributes: { [key: string]: readonly string[] } | true;
 	/**
 	 * List of HTML tags that are not allowed and will be escaped out.
 	 */
@@ -425,6 +425,8 @@ const DEFAULT_OPTIONS: RenderOptions = {
 }
 
 function sanitize_raw<N extends html.Node>(node: N, context: RenderContext): N {
+	if (context.inline_html.allowed_attributes === true) return node;
+
 	if (node instanceof html.Element) {
 		node.attributes = node.attributes.filter(attribute =>
 			context.inline_html.allowed_attributes["*"].includes(attribute.name)

@@ -93,3 +93,7 @@
 
 - Added allowed attributes in inline HTML rendering option.
 - Fixed bad handling of malformed image elements.
+
+### 2.3.1
+
+- Added a way to disable attribute sanitization in inline HTML rendering.
